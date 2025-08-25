@@ -1,0 +1,175 @@
+graph TD
+    %% Entry Points
+    START([User Input]) --> ORCHESTRATOR{Orchestrator Agent<br/>Intent Classification}
+    
+    %% Direct Agent Access Routes - Core Agents
+    ORCHESTRATOR -->|Direct Query| STRATEGY[Content Strategy & Planning Agent<br/>🎯 Trend Research<br/>Content Calendar<br/>Competitor Analysis]
+    ORCHESTRATOR -->|Direct Query| CONTENT[Content Creation Agent<br/>✍️ Text Generation<br/>Visual Ideation<br/>Hashtag Optimization]
+    ORCHESTRATOR -->|Direct Query| PUBLISHING[Content Scheduling & Publishing Agent<br/>📱 Cross-Platform Publishing<br/>Optimal Timing<br/>Queue Management]
+    ORCHESTRATOR -->|Direct Query| COMMUNITY[Community Management & Engagement Agent<br/>💬 Real-time Responses<br/>Sentiment Analysis<br/>Customer Queries]
+    ORCHESTRATOR -->|Direct Query| LISTENING[Social Listening & Monitoring Agent<br/>👂 Brand Mentions<br/>Industry Intelligence<br/>Influencer Tracking]
+    ORCHESTRATOR -->|Direct Query| ANALYTICS[Analytics & Reporting Agent<br/>📊 Performance Analysis<br/>ROI Measurement<br/>Predictive Analytics]
+    
+    %% Direct Agent Access Routes - Specialized Agents
+    ORCHESTRATOR -->|Direct Query| CRISIS_AGENT[Crisis Management Agent<br/>🚨 Issue Detection<br/>Response Coordination<br/>Reputation Recovery]
+    ORCHESTRATOR -->|Direct Query| INFLUENCER[Influencer & Partnership Agent<br/>🤝 Influencer Discovery<br/>Partnership Management<br/>Campaign Tracking]
+    ORCHESTRATOR -->|Direct Query| PAID_SOCIAL[Paid Social Advertising Agent<br/>💰 Campaign Optimization<br/>Audience Targeting<br/>Budget Management]
+    ORCHESTRATOR -->|Direct Query| COMPLIANCE[Brand Safety & Compliance Agent<br/>🛡️ Content Moderation<br/>Legal Compliance<br/>Risk Assessment]
+    
+    %% Content Creation Workflow (Sequential)
+    ORCHESTRATOR -->|Content Creation Request| STRATEGY
+    
+    %% Parallel Multi-Agent Workflows - Updated for All Agents
+    ORCHESTRATOR -->|Complex Multi-Task Request| PARALLEL_COORDINATOR{Task Decomposition<br/>🔄 Parallel Execution}
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| STRATEGY
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| CONTENT
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| PUBLISHING
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| COMMUNITY
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| LISTENING
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| ANALYTICS
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| CRISIS_AGENT
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| INFLUENCER
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| PAID_SOCIAL
+    PARALLEL_COORDINATOR -->|Simultaneous Tasks| COMPLIANCE
+    STRATEGY --> STRATEGY_REVIEW{Human Review<br/>Required?}
+    STRATEGY_REVIEW -->|Yes| HUMAN_STRATEGY[👤 Human Approval<br/>Strategy Review]
+    STRATEGY_REVIEW -->|No| CONTENT[Content Creation Agent<br/>✍️ Copy Generation<br/>Visual Ideation<br/>Hashtag Research]
+    HUMAN_STRATEGY -->|Approved| CONTENT
+    HUMAN_STRATEGY -->|Rejected| STRATEGY
+    
+    %% Content Processing Pipeline
+    CONTENT --> CONTENT_REVIEW{Content Review<br/>Required?}
+    CONTENT_REVIEW -->|Yes| HUMAN_CONTENT[👤 Human Approval<br/>Content Review]
+    CONTENT_REVIEW -->|No| COMPLIANCE[Brand Safety Agent<br/>🛡️ Compliance Check<br/>Policy Validation<br/>Risk Assessment]
+    HUMAN_CONTENT -->|Approved| COMPLIANCE
+    HUMAN_CONTENT -->|Needs Revision| CONTENT
+    
+    %% Parallel Task Coordination
+    subgraph PARALLEL_EXECUTION [" ⚡ Parallel Agent Execution"]
+        TASK_SPLITTER[🔀 Task Decomposition<br/>Split Complex Requests]
+        PARALLEL_MONITOR[📊 Progress Monitor<br/>Track Multiple Agents]
+        RESULT_AGGREGATOR[🔄 Result Aggregation<br/>Combine Outputs]
+    end
+    
+    %% Parallel Results Flow - Updated for All Agents
+    STRATEGY -->|Parallel Result| RESULT_AGGREGATOR
+    CONTENT -->|Parallel Result| RESULT_AGGREGATOR
+    PUBLISHING -->|Parallel Result| RESULT_AGGREGATOR
+    COMMUNITY -->|Parallel Result| RESULT_AGGREGATOR
+    LISTENING -->|Parallel Result| RESULT_AGGREGATOR
+    ANALYTICS -->|Parallel Result| RESULT_AGGREGATOR
+    CRISIS_AGENT -->|Parallel Result| RESULT_AGGREGATOR
+    INFLUENCER -->|Parallel Result| RESULT_AGGREGATOR
+    PAID_SOCIAL -->|Parallel Result| RESULT_AGGREGATOR
+    COMPLIANCE -->|Parallel Result| RESULT_AGGREGATOR
+    
+    RESULT_AGGREGATOR --> PARALLEL_COMPLETE[✅ All Tasks Complete<br/>Unified Response]
+    PARALLEL_COMPLETE --> END_SUCCESS
+    %% Publishing Pipeline  
+    COMPLIANCE --> COMPLIANCE_CHECK{Compliance<br/>Passed?}
+    COMPLIANCE_CHECK -->|Failed| CONTENT
+    COMPLIANCE_CHECK -->|Passed| PUBLISHING
+    
+    %% Post-Publishing with Monitoring
+    PUBLISHING --> LISTENING[Social Listening & Monitoring Agent<br/>👂 Track Performance<br/>Monitor Mentions<br/>Sentiment Analysis]
+    LISTENING --> TRACKING[Analytics Setup<br/>📈 Performance Tracking<br/>Metric Collection]
+    TRACKING --> END_SUCCESS[✅ Task Completed<br/>Return to User]
+    
+    %% Analytics Workflows
+    ANALYTICS --> ANALYTICS_TYPE{Analysis Type}
+    ANALYTICS_TYPE -->|Performance Report| REPORT[Generate Report<br/>📋 Insights & Recommendations]
+    ANALYTICS_TYPE -->|Strategy Input| STRATEGY
+    ANALYTICS_TYPE -->|Content Optimization| CONTENT
+    REPORT --> END_ANALYTICS[📊 Results to User]
+    
+    %% Community Management Workflows
+    COMMUNITY --> COMMUNITY_TYPE{Task Type}
+    COMMUNITY_TYPE -->|Response Needed| RESPONSE[Generate Response<br/>💬 Context-Aware Reply]
+    COMMUNITY_TYPE -->|Crisis Detection| CRISIS_AGENT
+    COMMUNITY_TYPE -->|Engagement Monitoring| MONITOR[Ongoing Monitoring<br/>👀 Real-time Tracking]
+    
+    %% Crisis Management Workflows
+    CRISIS_AGENT --> CRISIS_TYPE{Crisis Level}
+    CRISIS_TYPE -->|Low Risk| CRISIS_RESPONSE[Generate Crisis Response<br/>📝 Measured Response Strategy]
+    CRISIS_TYPE -->|High Risk| CRISIS_ESCALATE[Immediate Escalation<br/>🚨 Alert Management Team]
+    CRISIS_TYPE -->|Assessment Needed| CRISIS_ANALYZE[Crisis Analysis<br/>🔍 Situation Assessment]
+    
+    RESPONSE --> RESPONSE_REVIEW{Human Review<br/>Required?}
+    RESPONSE_REVIEW -->|Yes| HUMAN_RESPONSE[👤 Human Approval<br/>Response Review]
+    RESPONSE_REVIEW -->|No| PUBLISH_RESPONSE[📤 Publish Response]
+    HUMAN_RESPONSE -->|Approved| PUBLISH_RESPONSE
+    HUMAN_RESPONSE -->|Rejected| RESPONSE
+    PUBLISH_RESPONSE --> END_COMMUNITY[✅ Community Task Complete]
+    
+    CRISIS_RESPONSE --> CRISIS_REVIEW{Human Review<br/>Required?}
+    CRISIS_REVIEW -->|Yes| HUMAN_CRISIS[🚨 Human Crisis Review<br/>Response Approval]
+    CRISIS_REVIEW -->|No| EXECUTE_CRISIS[Execute Crisis Response<br/>📢 Multi-channel Communication]
+    HUMAN_CRISIS -->|Approved| EXECUTE_CRISIS
+    HUMAN_CRISIS -->|Rejected| CRISIS_RESPONSE
+    
+    CRISIS_ESCALATE --> HUMAN_CRISIS_URGENT[🚨 URGENT Human Alert<br/>Immediate Intervention Required]
+    HUMAN_CRISIS_URGENT --> END_CRISIS_URGENT[⚠️ Crisis Escalated]
+    
+    CRISIS_ANALYZE --> CRISIS_REPORT[Crisis Assessment Report<br/>📋 Risk Analysis & Recommendations]
+    CRISIS_REPORT --> END_CRISIS_ANALYSIS[📊 Assessment Complete]
+    
+    EXECUTE_CRISIS --> END_CRISIS_HANDLED[✅ Crisis Response Deployed]
+    
+    MONITOR --> END_MONITOR[👁️ Monitoring Active]
+    
+    %% Feedback Loops and Iterations
+    END_SUCCESS --> FEEDBACK{User Wants<br/>Modifications?}
+    FEEDBACK -->|Yes| MODIFY[Modification Request]
+    FEEDBACK -->|No| COMPLETE([Session Complete])
+    MODIFY --> ORCHESTRATOR
+    
+    %% Error Handling - Updated for All Agents
+    STRATEGY -.->|Error| ERROR_HANDLER[🔧 Error Recovery<br/>Fallback Logic]
+    CONTENT -.->|Error| ERROR_HANDLER
+    PUBLISHING -.->|Error| ERROR_HANDLER
+    COMMUNITY -.->|Error| ERROR_HANDLER
+    LISTENING -.->|Error| ERROR_HANDLER
+    ANALYTICS -.->|Error| ERROR_HANDLER
+    CRISIS_AGENT -.->|Error| ERROR_HANDLER
+    INFLUENCER -.->|Error| ERROR_HANDLER
+    PAID_SOCIAL -.->|Error| ERROR_HANDLER
+    COMPLIANCE -.->|Error| ERROR_HANDLER
+    
+    ERROR_HANDLER --> HUMAN_ERROR[👤 Human Intervention<br/>Error Resolution]
+    HUMAN_ERROR --> ORCHESTRATOR
+    
+    %% State Management (LangGraph Specific)
+    subgraph STATE_MANAGEMENT [" 🗄️ LangGraph State Management"]
+        STATE[(Conversation State<br/>user_request<br/>current_agent<br/>workflow_step<br/>context_data<br/>approval_needed)]
+        CHECKPOINTS[🔄 Checkpoints<br/>Save/Resume<br/>Rollback Points]
+    end
+    
+    %% Agent Tools and Integrations
+    subgraph TOOLS [" 🛠️ Agent Tools & Integrations"]
+        SOCIAL_APIS[📱 Social Media APIs<br/>Instagram, LinkedIn<br/>Twitter, Facebook]
+        ANALYTICS_TOOLS[📊 Analytics Tools<br/>Platform Analytics<br/>Google Analytics]
+        CONTENT_TOOLS[🎨 Content Tools<br/>Image Generation<br/>Canva API]
+        MONITORING_TOOLS[👀 Monitoring Tools<br/>Mention Tracking<br/>Sentiment Analysis]
+    end
+    
+    %% Conditional Routing Logic
+    subgraph ROUTING_LOGIC [" 🔀 LangGraph Routing Logic"]
+        INTENT_CLASSIFIER[🧠 Intent Classification<br/>Creation, Analysis<br/>Management, Strategy]
+        WORKFLOW_ROUTER[⚡ Workflow Router<br/>Sequential vs Direct<br/>Human-in-Loop]
+        CONTEXT_MANAGER[📝 Context Manager<br/>Agent Handoffs<br/>Data Persistence]
+    end
+    
+    %% Styling
+    classDef agentNode fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    classDef decisionNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef humanNode fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000
+    classDef systemNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef endNode fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000
+    classDef errorNode fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#000
+    
+    class ORCHESTRATOR,STRATEGY,CONTENT,COMPLIANCE,PUBLISHING,ANALYTICS,COMMUNITY,CRISIS_AGENT agentNode
+    class STRATEGY_REVIEW,CONTENT_REVIEW,COMPLIANCE_CHECK,ANALYTICS_TYPE,COMMUNITY_TYPE,RESPONSE_REVIEW,FEEDBACK decisionNode
+    class HUMAN_STRATEGY,HUMAN_CONTENT,HUMAN_RESPONSE,HUMAN_CRISIS,HUMAN_ERROR humanNode
+    class STATE,CHECKPOINTS,SOCIAL_APIS,ANALYTICS_TOOLS,CONTENT_TOOLS,MONITORING_TOOLS systemNode
+    class END_SUCCESS,END_ANALYTICS,END_COMMUNITY,END_CRISIS,END_MONITOR,COMPLETE endNode
+    class ERROR_HANDLER errorNode
