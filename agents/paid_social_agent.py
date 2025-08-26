@@ -19,10 +19,7 @@ class PaidSocialAgent:
         Process paid advertising tasks
         """
         print(f"Paid Social Agent processing: {state.get('user_request', '')}")
-        print("- Optimizing ad campaigns")
-        print("- Targeting audience segments")
-        print("- Managing advertising budget")
-        print("- A/B testing ad creatives")
+        print("PAID SOCIAL AGENT IS PROCESSING")
         
         state['agent_responses'].append({
             'agent': self.name,

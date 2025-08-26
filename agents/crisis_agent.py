@@ -19,10 +19,7 @@ class CrisisAgent:
         Process crisis management tasks
         """
         print(f"Crisis Agent processing: {state.get('user_request', '')}")
-        print("- Detecting crisis severity")
-        print("- Coordinating response strategy")
-        print("- Managing reputation recovery")
-        print("- Escalating to stakeholders if needed")
+        print("CRISIS AGENT IS PROCESSING")
         
         # Assess crisis level
         crisis_level = state.get('crisis_level', 'low')

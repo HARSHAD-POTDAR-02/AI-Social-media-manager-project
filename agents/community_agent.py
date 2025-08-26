@@ -19,10 +19,7 @@ class CommunityAgent:
         Process community management tasks
         """
         print(f"Community Agent processing: {state.get('user_request', '')}")
-        print("- Monitoring comments and messages")
-        print("- Generating personalized responses")
-        print("- Analyzing sentiment")
-        print("- Managing customer queries")
+        print("COMMUNITY AGENT IS PROCESSING")
         
         state['agent_responses'].append({
             'agent': self.name,

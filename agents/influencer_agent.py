@@ -19,10 +19,7 @@ class InfluencerAgent:
         Process influencer-related tasks
         """
         print(f"Influencer Agent processing: {state.get('user_request', '')}")
-        print("- Discovering relevant influencers")
-        print("- Managing partnerships")
-        print("- Tracking campaign performance")
-        print("- Analyzing influencer ROI")
+        print("INFLUENCER AGENT IS PROCESSING")
         
         state['agent_responses'].append({
             'agent': self.name,

@@ -5,9 +5,8 @@ Main graph setup file containing the complete workflow and agent connections
 
 from typing import TypedDict, Literal, List, Dict, Any, Optional, Annotated
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint import MemorySaver
-from langgraph.prebuilt import ToolExecutor, ToolInvocation
 import operator
+from langgraph.checkpoint.memory import MemorySaver
 from datetime import datetime
 
 # Import all agent modules
@@ -39,6 +38,8 @@ class GraphState(TypedDict):
     task_decomposition: List[Dict[str, Any]]
     parallel_tasks: List[Dict[str, Any]]
     context_data: Dict[str, Any]
+    planned_sequence: List[str]  # Ordered list of agents for sequential or direct workflows
+    sequence_index: int          # Pointer to current position in planned_sequence
     
     # Content and strategy fields
     content_strategy: Optional[Dict[str, Any]]
@@ -178,39 +179,29 @@ class SocialMediaManagerGraph:
             }
         )
         
-        # Sequential workflow edges
-        self.workflow.add_conditional_edges(
-            "strategy",
-            self.check_human_review,
-            {
-                "human_review": "human_review",
-                "continue": "content",
-                "error": "error_handler"
-            }
-        )
+        # Unified post-agent routing: after any agent, decide next step based on planned_sequence
+        post_map = {
+            "human_review": "human_review",
+            "prepare_response": "prepare_response",
+            "error": "error_handler",
+            # allow jumping to any agent by name
+            "strategy": "strategy",
+            "content": "content",
+            "publishing": "publishing",
+            "community": "community",
+            "listening": "listening",
+            "analytics": "analytics",
+            "crisis": "crisis",
+            "influencer": "influencer",
+            "paid_social": "paid_social",
+            "compliance": "compliance",
+        }
         
-        self.workflow.add_conditional_edges(
-            "content",
-            self.check_human_review,
-            {
-                "human_review": "human_review",
-                "continue": "compliance",
-                "error": "error_handler"
-            }
-        )
-        
-        self.workflow.add_conditional_edges(
-            "compliance",
-            self.check_compliance,
-            {
-                "passed": "publishing",
-                "failed": "content",  # Return to content for revision
-                "error": "error_handler"
-            }
-        )
-        
-        self.workflow.add_edge("publishing", "listening")
-        self.workflow.add_edge("listening", "prepare_response")
+        for node in [
+            "strategy","content","publishing","community","listening",
+            "analytics","crisis","influencer","paid_social","compliance"
+        ]:
+            self.workflow.add_conditional_edges(node, self.next_step_router, post_map)
         
         # Analytics workflows
         self.workflow.add_conditional_edges(
@@ -280,42 +271,65 @@ class SocialMediaManagerGraph:
         self.workflow.add_edge("prepare_response", "complete")
         self.workflow.add_edge("complete", END)
     
+    def route_request(self, state: GraphState) -> GraphState:
+        """
+        Use the central router to determine which agent(s) to invoke
+        """
+        # Get routing decision from the router
+        routing_decision = self.router.route(state['user_request'], state.get('context_data', {}))
+        
+        # Set basic state from routing decision
+        state['current_agent'] = routing_decision['primary_agent']
+        state['workflow_type'] = routing_decision['workflow_type']
+        
+        # Initialize sequence based on workflow type
+        if state['workflow_type'] == 'sequential':
+            planned = [routing_decision['primary_agent']] + routing_decision.get('secondary_agents', [])
+        elif state['workflow_type'] == 'direct':
+            planned = [routing_decision['primary_agent']]
+        else:  # parallel or other
+            planned = []
+        
+        # Update state with planned sequence and reset index
+        state['planned_sequence'] = planned
+        state['sequence_index'] = 0
+        
+        # Handle parallel tasks if needed
+        if routing_decision['workflow_type'] == 'parallel':
+            state['parallel_tasks'] = routing_decision.get('parallel_tasks', [])
+        
+        # Set human review flag if needed
+        state['approval_needed'] = routing_decision.get('requires_human_review', False)
+        
+        return state
+        
     def process_user_input(self, state: GraphState) -> GraphState:
         """
         Process initial user input and prepare state
         """
-        print(f"Processing user input: {state['user_request']}")
         state['timestamp'] = datetime.now()
         state['workflow_step'] = 0
         state['retry_count'] = 0
         state['agent_responses'] = []
         return state
-    
-    def route_request(self, state: GraphState) -> GraphState:
-        """
-        Use the central router to determine which agent(s) to invoke
-        """
-        routing_decision = self.router.route(state['user_request'], state.get('context_data', {}))
-        state['current_agent'] = routing_decision['primary_agent']
-        state['workflow_type'] = routing_decision['workflow_type']
         
-        if routing_decision['workflow_type'] == 'parallel':
-            state['parallel_tasks'] = routing_decision['parallel_tasks']
-        
-        print(f"Routing to: {routing_decision['primary_agent']} via {routing_decision['workflow_type']} workflow")
-        return state
-    
     def determine_workflow_path(self, state: GraphState) -> str:
         """
         Determine the next node based on routing decision
         """
-        if state['workflow_type'] == 'parallel':
+        if state.get('workflow_type') == 'parallel':
             return 'parallel'
-        elif state['workflow_type'] == 'sequential':
-            return 'sequential'
-        else:
-            # Direct routing to specific agent
-            return state['current_agent']
+        elif state.get('workflow_type') == 'sequential':
+            # Start with the first agent in the planned sequence
+            seq = state.get('planned_sequence', [state['current_agent']])
+            if seq:
+                state['sequence_index'] = 0
+                state['current_agent'] = seq[0]
+                return seq[0]
+            return 'strategy'
+        
+        # Direct routing to specific agent
+        return state.get('current_agent', 'strategy')
     
     def check_human_review(self, state: GraphState) -> str:
         """
@@ -327,6 +341,37 @@ class SocialMediaManagerGraph:
             return 'error'
         else:
             return 'continue'
+
+    def next_step_router(self, state: GraphState) -> str:
+        """
+        Decide the next node after completing the current agent based on workflow plan.
+        PURE function: do not mutate state in conditional routers.
+        - For direct: finish.
+        - For sequential: compute next from planned_sequence and current_agent.
+        """
+
+        if state.get('approval_needed', False):
+            return 'human_review'
+
+        if state.get('error_state'):
+            return 'error'
+
+        if state.get('workflow_type') == 'direct':
+            return 'prepare_response'
+
+        if state.get('workflow_type') == 'sequential':
+            seq = state.get('planned_sequence', [])
+            if not seq:
+                return 'prepare_response'
+            current = state.get('current_agent')
+            try:
+                idx = seq.index(current)
+            except Exception:
+                idx = -1
+            next_idx = idx + 1
+            if 0 <= next_idx < len(seq):
+                return seq[next_idx]
+            return 'prepare_response'
     
     def check_compliance(self, state: GraphState) -> str:
         """
@@ -345,9 +390,26 @@ class SocialMediaManagerGraph:
         """
         if state.get('error_state'):
             return 'error'
-        
+
+        # Default behavior: return a report (maps to prepare_response)
         analytics_type = state.get('context_data', {}).get('analytics_type', 'report')
-        return analytics_type
+
+        # If not in a sequential plan, or there's no next planned step, finish
+        if state.get('workflow_type') != 'sequential':
+            return 'report'
+
+        seq = state.get('planned_sequence', [])
+        idx = state.get('sequence_index', 0) + 1  # next index after analytics
+        next_agent = seq[idx] if idx < len(seq) else None
+
+        # Allow branching only when it matches the next planned agent
+        if analytics_type == 'strategy_input' and next_agent == 'strategy':
+            return 'strategy_input'
+        if analytics_type == 'content_optimization' and next_agent == 'content':
+            return 'content_optimization'
+
+        # Otherwise, finalize (report -> prepare_response)
+        return 'report'
     
     def determine_community_action(self, state: GraphState) -> str:
         """
@@ -355,9 +417,25 @@ class SocialMediaManagerGraph:
         """
         if state.get('error_state'):
             return 'error'
-        
+
         action = state.get('context_data', {}).get('community_action', 'response')
-        return action
+
+        # If not sequential, or no planned next step, respond directly (-> prepare_response)
+        if state.get('workflow_type') != 'sequential':
+            return 'response'
+
+        seq = state.get('planned_sequence', [])
+        idx = state.get('sequence_index', 0) + 1
+        next_agent = seq[idx] if idx < len(seq) else None
+
+        # Allow escalation/monitoring only if planned next step matches
+        if action == 'crisis' and next_agent == 'crisis':
+            return 'crisis'
+        if action == 'monitoring' and next_agent == 'listening':
+            return 'monitoring'
+
+        # Otherwise, keep it as a direct response
+        return 'response'
     
     def assess_crisis_level(self, state: GraphState) -> str:
         """
@@ -453,19 +531,28 @@ class SocialMediaManagerGraph:
         """
         Run the graph with a user request
         """
+        thread_id = session_id or f"session_{datetime.now().timestamp()}"
         initial_state = {
             "user_request": user_request,
-            "session_id": session_id or f"session_{datetime.now().timestamp()}",
-            "workflow_step": 0,
-            "agent_responses": [],
+            "current_agent": "orchestrator",
+            "workflow_type": "direct",
+            "task_decomposition": [],
+            "parallel_tasks": [],
             "context_data": {},
-            "retry_count": 0
+            "planned_sequence": [],
+            "sequence_index": 0,
+            "workflow_step": 0,
+            "approval_needed": False,
+            "agent_responses": [],
+            "retry_count": 0,
+            "performance_metrics": {},
+            "timestamp": datetime.now(),
+            "session_id": thread_id,
         }
-        
-        # Run the graph
-        config = {"configurable": {"thread_id": session_id}} if session_id else {}
+
+        # Run the graph with required checkpointer keys and a higher recursion limit
+        config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 50}
         result = self.app.invoke(initial_state, config)
-        
         return result
 
 if __name__ == "__main__":
@@ -476,6 +563,12 @@ if __name__ == "__main__":
     # Initialize the graph
     graph = SocialMediaManagerGraph(groq_api_key)
     
-    # Example request
-    result = graph.run("Create a social media strategy for launching a new product")
+    # Define a unique ID for this conversation
+    session_id = "test-social-media-run-1"
+
+    # Example request - now with the session_id
+    result = graph.run(
+        "Create a social media strategy for launching a new product",
+        session_id=session_id  # <-- THIS IS THE REQUIRED CHANGE
+    )
     print(f"Final result: {result.get('final_response')}")

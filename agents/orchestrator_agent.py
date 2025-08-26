@@ -19,9 +19,7 @@ class OrchestratorAgent:
         Process the state and classify intent
         """
         print(f"Orchestrator Agent processing: {state.get('user_request', '')}")
-        print("- Classifying user intent")
-        print("- Determining workflow type")
-        print("- Setting up execution plan")
+        print("ORCHESTRATOR AGENT IS PROCESSING")
         
         # Add orchestration results to state
         state['agent_responses'].append({

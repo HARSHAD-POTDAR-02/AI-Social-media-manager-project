@@ -19,10 +19,7 @@ class AnalyticsAgent:
         Process analytics and reporting tasks
         """
         print(f"Analytics Agent processing: {state.get('user_request', '')}")
-        print("- Analyzing performance metrics")
-        print("- Calculating ROI")
-        print("- Generating reports")
-        print("- Providing predictive insights")
+        print("ANALYTICS AGENT IS PROCESSING")
         
         state['performance_metrics'] = {
             'engagement_rate': 5.2,

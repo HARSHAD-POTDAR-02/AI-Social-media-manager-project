@@ -22,10 +22,7 @@ class ParallelCoordinatorAgent:
         Process parallel task coordination
         """
         print(f"Parallel Coordinator processing: {state.get('user_request', '')}")
-        print("- Decomposing complex tasks")
-        print("- Identifying parallelizable components")
-        print("- Coordinating multi-agent execution")
-        print("- Managing task dependencies")
+        print("PARALLEL COORDINATOR AGENT IS PROCESSING")
         
         # Get parallel tasks from state
         parallel_tasks = state.get('parallel_tasks', [])

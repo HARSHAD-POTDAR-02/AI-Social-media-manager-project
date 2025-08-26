@@ -19,10 +19,7 @@ class ComplianceAgent:
         Process compliance and safety checks
         """
         print(f"Compliance Agent processing: {state.get('user_request', '')}")
-        print("- Checking brand safety guidelines")
-        print("- Verifying legal compliance")
-        print("- Moderating content")
-        print("- Assessing risk factors")
+        print("COMPLIANCE AGENT IS PROCESSING")
         
         # Compliance check
         compliance_passed = True  # Default to passing

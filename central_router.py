@@ -90,30 +90,64 @@ class CentralRouter:
         - paid_social: Paid advertising, campaign optimization, audience targeting, budget management
         - compliance: Brand safety, content moderation, legal compliance, risk assessment
         
+        Decision Making Process:
+        1. First, analyze if the request is a direct query that can be handled by a single agent
+        2. If multiple tasks are present, determine if they are related and can be handled by the same agent
+        3. Only use sequential workflow if tasks must happen in order (e.g., create content then publish it)
+        4. Only use parallel workflow for completely independent tasks that can be done simultaneously
+        
         Workflow types:
-        - direct: Single agent can handle the task
+        - direct: Single agent can handle the entire task (use this when the request is focused on one specific action)
         - sequential: Multiple agents need to work in sequence (e.g., strategy -> content -> publishing)
-        - parallel: Multiple agents can work simultaneously on different aspects
+        - parallel: Multiple independent tasks that can be done simultaneously
         
         You must respond in JSON format with the following structure:
         {
             "primary_agent": "agent_name",
             "workflow_type": "direct|sequential|parallel",
-            "reasoning": "Brief explanation of routing decision",
-            "secondary_agents": ["agent1", "agent2"],  // Optional, for sequential/parallel workflows
+            "reasoning": "Detailed explanation of routing decision, including why you chose direct/sequential/parallel",
+            "secondary_agents": ["agent1", "agent2"],  // Only include if workflow_type is sequential/parallel
             "parallel_tasks": [  // Only for parallel workflows
                 {"agent": "agent_name", "task": "specific task description"}
             ],
-            "requires_human_review": true/false,
-            "priority": "low|medium|high|critical"
+            "requires_human_review": true/false,  // Set to true for sensitive content or high-impact decisions
+            "priority": "low|medium|high|critical"  // Based on urgency and business impact
         }
         
-        Think step by step:
-        1. What is the main intent of the request?
-        2. Which agent(s) have the capabilities to handle this?
-        3. Is this a simple task (direct), multi-step process (sequential), or can parts be done simultaneously (parallel)?
-        4. Does this require human review for safety/quality?
-        """
+        Examples:
+        
+        User: "Create a post about our new product"
+        {
+            "primary_agent": "content",
+            "workflow_type": "direct",
+            "reasoning": "Simple content creation task that only requires the content agent",
+            "secondary_agents": [],
+            "parallel_tasks": [],
+            "requires_human_review": false,
+            "priority": "medium"
+        }
+        
+        User: "Create and schedule a post about our new product"
+        {
+            "primary_agent": "content",
+            "workflow_type": "sequential",
+            "reasoning": "Content needs to be created first, then scheduled",
+            "secondary_agents": ["publishing"],
+            "parallel_tasks": [],
+            "requires_human_review": false,
+            "priority": "medium"
+        }
+        
+        User: "Analyze our performance and create a report"
+        {
+            "primary_agent": "analytics",
+            "workflow_type": "direct",
+            "reasoning": "Analytics agent can both analyze and generate reports",
+            "secondary_agents": [],
+            "parallel_tasks": [],
+            "requires_human_review": false,
+            "priority": "medium"
+        }"""
     
     def _create_routing_prompt(self, user_request: str, context: Optional[Dict[str, Any]]) -> str:
         """
@@ -219,63 +253,83 @@ class CentralRouter:
     def _fallback_routing(self, user_request: str) -> Dict[str, Any]:
         """
         Fallback routing when LLM fails
+        Uses more conservative routing that defaults to direct workflow
         """
         request_lower = user_request.lower()
         
-        # Simple keyword-based routing as fallback
-        if any(word in request_lower for word in ["create", "write", "generate", "content"]):
-            if "strategy" in request_lower:
-                return {
-                    "primary_agent": "strategy",
-                    "workflow_type": "sequential",
-                    "reasoning": "Content creation workflow detected",
-                    "secondary_agents": ["content", "compliance", "publishing"],
-                    "parallel_tasks": [],
-                    "requires_human_review": True,
-                    "priority": "medium"
-                }
-            else:
-                return {
-                    "primary_agent": "content",
-                    "workflow_type": "direct",
-                    "reasoning": "Content creation task",
-                    "secondary_agents": [],
-                    "parallel_tasks": [],
-                    "requires_human_review": False,
-                    "priority": "medium"
-                }
+        # Default to direct workflow for most cases
+        workflow_type = "direct"
+        secondary_agents = []
+        requires_review = False
+        priority = "medium"
         
+        # Content-related requests
+        content_keywords = ["create", "write", "generate", "post", "caption", "content"]
+        if any(word in request_lower for word in content_keywords):
+            # Check if scheduling is explicitly mentioned
+            if "schedule" in request_lower or "publish" in request_lower:
+                workflow_type = "sequential"
+                secondary_agents = ["publishing"]
+                reasoning = "Content creation with scheduling requires sequential workflow"
+            else:
+                reasoning = "Direct content creation task"
+            
+            return {
+                "primary_agent": "content",
+                "workflow_type": workflow_type,
+                "reasoning": reasoning,
+                "secondary_agents": secondary_agents,
+                "parallel_tasks": [],
+                "requires_human_review": requires_review,
+                "priority": priority
+            }
+        
+        # Analytics requests
         elif any(word in request_lower for word in ["analyze", "report", "metrics", "performance"]):
             return {
                 "primary_agent": "analytics",
                 "workflow_type": "direct",
-                "reasoning": "Analytics task detected",
+                "reasoning": "Analytics task that can be handled by a single agent",
                 "secondary_agents": [],
                 "parallel_tasks": [],
                 "requires_human_review": False,
                 "priority": "medium"
             }
         
+        # Crisis management
         elif any(word in request_lower for word in ["crisis", "urgent", "emergency"]):
             return {
                 "primary_agent": "crisis",
                 "workflow_type": "direct",
-                "reasoning": "Crisis management required",
+                "reasoning": "Crisis management task that requires immediate attention",
                 "secondary_agents": [],
                 "parallel_tasks": [],
                 "requires_human_review": True,
                 "priority": "critical"
             }
         
+        # Community engagement
         elif any(word in request_lower for word in ["respond", "reply", "engage", "comment"]):
             return {
                 "primary_agent": "community",
                 "workflow_type": "direct",
-                "reasoning": "Community engagement task",
+                "reasoning": "Direct community engagement task",
                 "secondary_agents": [],
                 "parallel_tasks": [],
                 "requires_human_review": False,
                 "priority": "high"
+            }
+            
+        # Strategy and planning
+        elif any(word in request_lower for word in ["strategy", "plan", "calendar", "competitor"]):
+            return {
+                "primary_agent": "strategy",
+                "workflow_type": "direct",
+                "reasoning": "Strategic planning task",
+                "secondary_agents": [],
+                "parallel_tasks": [],
+                "requires_human_review": False,
+                "priority": "medium"
             }
         
         # Default to strategy agent for complex or unclear requests

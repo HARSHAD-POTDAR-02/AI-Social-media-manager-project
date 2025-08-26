@@ -18,11 +18,10 @@ class StrategyAgent:
         """
         Process strategy-related tasks
         """
+        # Mark current node for the router
+        state['current_agent'] = self.name
         print(f"Strategy Agent processing: {state.get('user_request', '')}")
-        print("- Analyzing market trends")
-        print("- Researching competitors")
-        print("- Creating content calendar")
-        print("- Developing strategic recommendations")
+        print("STRATEGY AGENT IS PROCESSING")
         
         # Add strategy results to state
         state['content_strategy'] = {

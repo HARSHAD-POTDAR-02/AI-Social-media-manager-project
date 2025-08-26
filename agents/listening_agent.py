@@ -19,10 +19,7 @@ class ListeningAgent:
         Process social listening tasks
         """
         print(f"Listening Agent processing: {state.get('user_request', '')}")
-        print("- Monitoring brand mentions")
-        print("- Tracking industry trends")
-        print("- Identifying influencers")
-        print("- Analyzing competitor activity")
+        print("LISTENING AGENT IS PROCESSING")
         
         state['agent_responses'].append({
             'agent': self.name,

@@ -18,11 +18,10 @@ class PublishingAgent:
         """
         Process publishing and scheduling tasks
         """
+        # Mark current node for the router
+        state['current_agent'] = self.name
         print(f"Publishing Agent processing: {state.get('user_request', '')}")
-        print("- Determining optimal posting times")
-        print("- Scheduling content across platforms")
-        print("- Managing publishing queue")
-        print("- Cross-platform distribution")
+        print("PUBLISHING AGENT IS PROCESSING")
         
         state['agent_responses'].append({
             'agent': self.name,
