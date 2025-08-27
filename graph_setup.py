@@ -524,10 +524,15 @@ class SocialMediaManagerGraph:
         """
         Complete the workflow and return final state
         """
-        print(f"Workflow completed: {state.get('final_response')}")
+        final_response = state.get('final_response', 'No response generated')
+        print(f"\n{'='*60}")
+        print("🎯 WORKFLOW COMPLETED")
+        print("-" * 60)
+        print(final_response)
+        print("="*60)
         return state
     
-    def run(self, user_request: str, session_id: str = None) -> Dict[str, Any]:
+    def run(self, user_request: str, session_id: str = None, context_data: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Run the graph with a user request
         """
@@ -538,7 +543,7 @@ class SocialMediaManagerGraph:
             "workflow_type": "direct",
             "task_decomposition": [],
             "parallel_tasks": [],
-            "context_data": {},
+            "context_data": context_data or {},
             "planned_sequence": [],
             "sequence_index": 0,
             "workflow_step": 0,

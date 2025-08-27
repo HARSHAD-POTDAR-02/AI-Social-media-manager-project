@@ -22,6 +22,7 @@ class SocialMediaCLI:
         print("🚀 Initializing AI Social Media Manager...")
         self.graph = SocialMediaManagerGraph(self.groq_api_key)
         self.session_id_counter = 0
+        self.last_draft = None  # store last generated content for iterative feedback
 
     def print_welcome(self):
         """Prints a welcome message to the user."""
@@ -34,6 +35,7 @@ class SocialMediaCLI:
         print("   - 'Generate a report of our performance last month'")
         print("   - 'Create and schedule a post about our summer sale'")
         print("   - 'I need a complete market overview, including competitor analysis and performance metrics'")
+        print("\nTip: After I generate a post, send feedback using 'feedback: <your notes>' to refine the draft.")
         print("\nType 'exit' or 'quit' to end the session.")
         print("="*60 + "\n")
 
@@ -58,16 +60,51 @@ class SocialMediaCLI:
                 print("🤖 AI Manager: Processing your request...")
                 print("─" * 60)
                 
-                # Invoke the graph with the user's request
-                result = self.graph.run(user_input, session_id=session_id)
+                # Handle feedback mode
+                if user_input.lower().startswith("feedback:"):
+                    feedback_text = user_input[len("feedback:"):].strip()
+                    if not self.last_draft:
+                        print("⚠️ No previous draft found. Please first ask me to create content, then provide feedback.")
+                        print("─" * 60)
+                        continue
+                    context_data = {
+                        "content_feedback": feedback_text,
+                        "previous_draft": self.last_draft,
+                    }
+                    # word the request so router clearly sends to content agent
+                    routed_request = "Create a revised content draft applying the provided feedback."
+                    result = self.graph.run(routed_request, session_id=session_id, context_data=context_data)
+                else:
+                    # Regular request flow
+                    result = self.graph.run(user_input, session_id=session_id)
                 
-                # The `run` method in the graph should be updated to return the final state
-                # and the final response should be extracted from there.
-                final_response = result.get('final_response', "Workflow finished, but no final response was prepared.")
-
-                print("─" * 60)
-                print(f"✅ Final Response: {final_response}")
-                print("\n" + "="*60 + "\n")
+                # Final response and capture last draft if available
+                final_response = result.get('final_response')
+                generated = result.get('generated_content', {}) or {}
+                
+                # Store the generated content for potential feedback
+                if isinstance(generated, dict) and generated.get('content'):
+                    self.last_draft = generated.get('content')
+                    
+                    # Display the generated content in a clean format
+                    print("─" * 60)
+                    print("🎯 GENERATED CONTENT:")
+                    print("-" * 30)
+                    print(self.last_draft)
+                    print("-" * 30)
+                    
+                    # Show iteration count if available
+                    iterations = generated.get('iterations', 0)
+                    if iterations > 0:
+                        print(f"\n(Refined through {iterations} iterations of generation and critique)")
+                
+                # Only show final response if it's different from the generated content
+                if final_response and final_response != self.last_draft:
+                    print("\n📝 Additional Details:")
+                    print(f"{final_response}")
+                
+                print("\n💡 Tip: Type 'feedback: your notes' to refine this content")
+                print("="*60 + "\n")
 
             except KeyboardInterrupt:
                 print("\n\n👋 Session interrupted. Goodbye!")
