@@ -8,6 +8,11 @@ from langgraph.graph import StateGraph, END
 import operator
 from langgraph.checkpoint.memory import MemorySaver
 from datetime import datetime
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import all agent modules
 from agents.orchestrator_agent import OrchestratorAgent
@@ -77,6 +82,10 @@ class SocialMediaManagerGraph:
         """
         Initialize the graph with all agents and connections
         """
+        self.groq_api_key = groq_api_key or os.getenv("GROQ_API_KEY")
+        if not self.groq_api_key:
+            raise ValueError("GROQ_API_KEY not found in environment variables or passed as argument")
+
         # Initialize the central router
         self.router = CentralRouter(groq_api_key)
         
