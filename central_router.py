@@ -67,6 +67,10 @@ class CentralRouter:
                 print("Warning: Sequential workflow detected but no secondary agents found. Using enhanced fallback.")
                 return self._enhanced_fallback_routing(user_request)
             
+            # Add task decomposition for sequential workflows
+            if routing_decision['workflow_type'] == 'sequential':
+                routing_decision['agent_tasks'] = self._decompose_tasks(user_request, routing_decision)
+            
             print(f"Router Decision: {json.dumps(routing_decision, indent=2)}")
             
             return routing_decision
@@ -146,6 +150,50 @@ class CentralRouter:
         Respond with the JSON routing decision."""
         
         return prompt
+    
+    def _decompose_tasks(self, user_request: str, routing_decision: Dict[str, Any]) -> Dict[str, str]:
+        """
+        Decompose complex request into specific tasks for each agent
+        """
+        try:
+            agents = [routing_decision['primary_agent']] + routing_decision.get('secondary_agents', [])
+            
+            decompose_prompt = f"""Break down this complex request into specific tasks for each agent:
+
+User Request: {user_request}
+
+Agents in sequence: {agents}
+
+For each agent, provide ONLY the specific task they should focus on, not the entire request.
+
+Respond in JSON format:
+{{
+    "analytics": "Analyze Instagram performance from past 2 weeks and identify top-performing content types",
+    "content": "Generate 5 reel ideas with scripts based on analytics insights",
+    "publishing": "Schedule the 5 reels at optimal times over next week",
+    "community": "Monitor comments and generate sentiment analysis report"
+}}"""
+            
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": "You are a task decomposer. Break complex requests into specific, focused tasks for each agent."},
+                    {"role": "user", "content": decompose_prompt}
+                ],
+                temperature=0.1,
+                max_tokens=500
+            )
+            
+            # Parse JSON response
+            json_match = re.search(r'\{.*\}', response.choices[0].message.content, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+                
+        except Exception as e:
+            print(f"Task decomposition error: {e}")
+        
+        # Fallback: return empty dict
+        return {}
     
     def _parse_routing_response(self, response: str) -> Dict[str, Any]:
         """

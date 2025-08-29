@@ -277,8 +277,12 @@ class SocialMediaManagerGraph:
         else:  # parallel or other
             queue = []
         
-        # Update state with agent queue
+        # Update state with agent queue and task decomposition
         state['agent_queue'] = queue
+        
+        # Store agent-specific tasks if available
+        if 'agent_tasks' in routing_decision:
+            state['context_data']['agent_tasks'] = routing_decision['agent_tasks']
         
         # Handle parallel tasks if needed
         if routing_decision['workflow_type'] == 'parallel':

@@ -22,7 +22,7 @@ class ContentAgent:
         if not api_key:
             print("Warning: GROQ_API_KEY is not set. Content generation will fail without it.")
         self.client = Groq(api_key=api_key) if api_key else None
-        self.model = "openai/gpt-oss-120b"
+        self.model = "openai/gpt-oss-20b"
         self.max_reflections = 3  # Reduced from 5 for better performance
 
     def _call_llm(self, system_prompt: str, user_prompt: str, temperature: float = 0.5) -> str:
@@ -80,9 +80,17 @@ class ContentAgent:
     def _create_content_brief(self, state: Dict[str, Any]) -> str:
         """Create a clear content brief from state"""
         ctx = state.get("context_data", {})
-        request = state.get('user_request', '')
         
-        brief_parts = [f"Main request: {request}"]
+        # Use specific task for this agent if available
+        agent_tasks = ctx.get('agent_tasks', {})
+        specific_task = agent_tasks.get('content')
+        
+        if specific_task:
+            brief_parts = [f"Specific task: {specific_task}"]
+        else:
+            # Fallback to full request
+            request = state.get('user_request', '')
+            brief_parts = [f"Main request: {request}"]
         
         # Add context information
         for key in ['platform', 'tone', 'audience', 'constraints']:

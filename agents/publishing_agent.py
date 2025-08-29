@@ -18,10 +18,9 @@ class PublishingAgent:
         """
         Process publishing and scheduling tasks
         """
-        # Mark current node for the router
         state['current_agent'] = self.name
         print(f"Publishing Agent processing: {state.get('user_request', '')}")
-        print("PUBLISHING AGENT IS PROCESSING")
+        print("🚀 PUBLISHING AGENT IS PROCESSING")
         
         state['agent_responses'].append({
             'agent': self.name,

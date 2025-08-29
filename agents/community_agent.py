@@ -18,6 +18,7 @@ class CommunityAgent:
         """
         Process community management tasks
         """
+        state['current_agent'] = self.name
         print(f"Community Agent processing: {state.get('user_request', '')}")
         print("COMMUNITY AGENT IS PROCESSING")
         

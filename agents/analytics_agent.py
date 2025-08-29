@@ -18,6 +18,7 @@ class AnalyticsAgent:
         """
         Process analytics and reporting tasks
         """
+        state['current_agent'] = self.name
         print(f"Analytics Agent processing: {state.get('user_request', '')}")
         print("ANALYTICS AGENT IS PROCESSING")
         
