@@ -43,8 +43,7 @@ class GraphState(TypedDict):
     task_decomposition: List[Dict[str, Any]]
     parallel_tasks: List[Dict[str, Any]]
     context_data: Dict[str, Any]
-    planned_sequence: List[str]  # Ordered list of agents for sequential or direct workflows
-    sequence_index: int          # Pointer to current position in planned_sequence
+    agent_queue: List[str]       # Queue of agents to process in order
     
     # Content and strategy fields
     content_strategy: Optional[Dict[str, Any]]
@@ -206,35 +205,14 @@ class SocialMediaManagerGraph:
             "compliance": "compliance",
         }
         
+        # Use unified routing for most agents (including analytics for sequential flow)
         for node in [
-            "strategy","content","publishing","community","listening",
-            "analytics","crisis","influencer","paid_social","compliance"
+            "strategy","content","publishing","listening","analytics",
+            "influencer","paid_social","compliance","community"
         ]:
             self.workflow.add_conditional_edges(node, self.next_step_router, post_map)
         
-        # Analytics workflows
-        self.workflow.add_conditional_edges(
-            "analytics",
-            self.determine_analytics_output,
-            {
-                "report": "prepare_response",
-                "strategy_input": "strategy",
-                "content_optimization": "content",
-                "error": "error_handler"
-            }
-        )
-        
-        # Community management workflows
-        self.workflow.add_conditional_edges(
-            "community",
-            self.determine_community_action,
-            {
-                "response": "prepare_response",
-                "crisis": "crisis",
-                "monitoring": "listening",
-                "error": "error_handler"
-            }
-        )
+        # Remove special routing for analytics and community - use unified routing instead
         
         # Crisis management workflows
         self.workflow.add_conditional_edges(
@@ -291,17 +269,16 @@ class SocialMediaManagerGraph:
         state['current_agent'] = routing_decision['primary_agent']
         state['workflow_type'] = routing_decision['workflow_type']
         
-        # Initialize sequence based on workflow type
+        # Initialize agent queue based on workflow type
         if state['workflow_type'] == 'sequential':
-            planned = [routing_decision['primary_agent']] + routing_decision.get('secondary_agents', [])
+            queue = [routing_decision['primary_agent']] + routing_decision.get('secondary_agents', [])
         elif state['workflow_type'] == 'direct':
-            planned = [routing_decision['primary_agent']]
+            queue = [routing_decision['primary_agent']]
         else:  # parallel or other
-            planned = []
+            queue = []
         
-        # Update state with planned sequence and reset index
-        state['planned_sequence'] = planned
-        state['sequence_index'] = 0
+        # Update state with agent queue
+        state['agent_queue'] = queue
         
         # Handle parallel tasks if needed
         if routing_decision['workflow_type'] == 'parallel':
@@ -329,12 +306,11 @@ class SocialMediaManagerGraph:
         if state.get('workflow_type') == 'parallel':
             return 'parallel'
         elif state.get('workflow_type') == 'sequential':
-            # Start with the first agent in the planned sequence
-            seq = state.get('planned_sequence', [state['current_agent']])
-            if seq:
-                state['sequence_index'] = 0
-                state['current_agent'] = seq[0]
-                return seq[0]
+            # Start with the first agent in the queue
+            queue = state.get('agent_queue', [state['current_agent']])
+            if queue:
+                state['current_agent'] = queue[0]
+                return queue[0]
             return 'strategy'
         
         # Direct routing to specific agent
@@ -353,34 +329,43 @@ class SocialMediaManagerGraph:
 
     def next_step_router(self, state: GraphState) -> str:
         """
-        Decide the next node after completing the current agent based on workflow plan.
-        PURE function: do not mutate state in conditional routers.
-        - For direct: finish.
-        - For sequential: compute next from planned_sequence and current_agent.
+        Simple queue-based routing: remove completed agent and route to next in queue.
         """
-
-        if state.get('approval_needed', False):
-            return 'human_review'
+        workflow_type = state.get('workflow_type')
+        agent_queue = state.get('agent_queue', [])
+        
+        print(f"DEBUG: next_step_router - workflow: {workflow_type}")
+        print(f"DEBUG: agent_queue before: {agent_queue}")
 
         if state.get('error_state'):
             return 'error'
 
-        if state.get('workflow_type') == 'direct':
+        if workflow_type == 'direct':
+            if state.get('approval_needed', False):
+                return 'human_review'
             return 'prepare_response'
 
-        if state.get('workflow_type') == 'sequential':
-            seq = state.get('planned_sequence', [])
-            if not seq:
+        if workflow_type == 'sequential':
+            if not agent_queue:
                 return 'prepare_response'
-            current = state.get('current_agent')
-            try:
-                idx = seq.index(current)
-            except Exception:
-                idx = -1
-            next_idx = idx + 1
-            if 0 <= next_idx < len(seq):
-                return seq[next_idx]
-            return 'prepare_response'
+            
+            # Remove the completed agent from front of queue
+            agent_queue.pop(0)
+            state['agent_queue'] = agent_queue
+            
+            print(f"DEBUG: agent_queue after pop: {agent_queue}")
+            
+            if agent_queue:  # More agents to process
+                next_agent = agent_queue[0]
+                print(f"DEBUG: routing to next agent: {next_agent}")
+                return next_agent
+            else:  # Queue empty - end of sequence
+                print(f"DEBUG: queue empty - end of sequence")
+                if state.get('approval_needed', False):
+                    return 'human_review'
+                return 'prepare_response'
+        
+        return 'prepare_response'
     
     def check_compliance(self, state: GraphState) -> str:
         """
@@ -488,6 +473,9 @@ class SocialMediaManagerGraph:
         """
         print("Applying human feedback")
         state['approval_needed'] = False
+        
+        # For sequential workflows, we want to continue to the next agent
+        # This is handled in route_after_human_feedback
         return state
     
     def route_after_human_feedback(self, state: GraphState) -> str:
@@ -553,8 +541,7 @@ class SocialMediaManagerGraph:
             "task_decomposition": [],
             "parallel_tasks": [],
             "context_data": context_data or {},
-            "planned_sequence": [],
-            "sequence_index": 0,
+            "agent_queue": [],
             "workflow_step": 0,
             "approval_needed": False,
             "agent_responses": [],

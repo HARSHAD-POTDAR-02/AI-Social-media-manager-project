@@ -56,11 +56,16 @@ class CentralRouter:
                     }
                 ],
                 temperature=0.1,  # Low temperature for consistent routing
-                max_tokens=500
+                max_tokens=800  # Increased for complex routing decisions
             )
             
             # Parse the response
             routing_decision = self._parse_routing_response(response.choices[0].message.content)
+            
+            # Validate that we have proper sequential agents for complex requests
+            if routing_decision['workflow_type'] == 'sequential' and not routing_decision.get('secondary_agents'):
+                print("Warning: Sequential workflow detected but no secondary agents found. Using enhanced fallback.")
+                return self._enhanced_fallback_routing(user_request)
             
             print(f"Router Decision: {json.dumps(routing_decision, indent=2)}")
             
@@ -68,8 +73,8 @@ class CentralRouter:
             
         except Exception as e:
             print(f"Routing error: {str(e)}")
-            # Fallback to basic routing
-            return self._fallback_routing(user_request)
+            # Use enhanced fallback for complex requests
+            return self._enhanced_fallback_routing(user_request)
     
     def _get_system_prompt(self) -> str:
         """
@@ -90,61 +95,30 @@ class CentralRouter:
         - paid_social: Paid advertising, campaign optimization, audience targeting, budget management
         - compliance: Brand safety, content moderation, legal compliance, risk assessment
         
-        Decision Making Process:
-        1. First, analyze if the request is a direct query that can be handled by a single agent
-        2. If multiple tasks are present, determine if they are related and can be handled by the same agent
-        3. Only use sequential workflow if tasks must happen in order (e.g., create content then publish it)
-        4. Only use parallel workflow for completely independent tasks that can be done simultaneously
+        CRITICAL: For complex multi-step requests, you MUST identify ALL required agents in the correct sequence.
         
         Workflow types:
-        - direct: Single agent can handle the entire task (use this when the request is focused on one specific action)
-        - sequential: Multiple agents need to work in sequence (e.g., strategy -> content -> publishing)
-        - parallel: Multiple independent tasks that can be done simultaneously
+        - direct: Single agent can handle the entire task
+        - sequential: Multiple agents work in order (most common for complex requests)
+        - parallel: Independent tasks that can run simultaneously
         
-        You must respond in JSON format with the following structure:
+        RESPOND ONLY IN VALID JSON FORMAT:
         {
-            "primary_agent": "agent_name",
-            "workflow_type": "direct|sequential|parallel",
-            "reasoning": "Detailed explanation of routing decision, including why you chose direct/sequential/parallel",
-            "secondary_agents": ["agent1", "agent2"],  // Only include if workflow_type is sequential/parallel
-            "parallel_tasks": [  // Only for parallel workflows
-                {"agent": "agent_name", "task": "specific task description"}
-            ],
-            "requires_human_review": true/false,  // Set to true for sensitive content or high-impact decisions
-            "priority": "low|medium|high|critical"  // Based on urgency and business impact
-        }
-        
-        Examples:
-        
-        User: "Create a post about our new product"
-        {
-            "primary_agent": "content",
-            "workflow_type": "direct",
-            "reasoning": "Simple content creation task that only requires the content agent",
-            "secondary_agents": [],
-            "parallel_tasks": [],
-            "requires_human_review": false,
-            "priority": "medium"
-        }
-        
-        User: "Create and schedule a post about our new product"
-        {
-            "primary_agent": "content",
+            "primary_agent": "first_agent_name",
             "workflow_type": "sequential",
-            "reasoning": "Content needs to be created first, then scheduled",
-            "secondary_agents": ["publishing"],
-            "parallel_tasks": [],
+            "reasoning": "Brief explanation",
+            "secondary_agents": ["agent2", "agent3", "agent4"],
             "requires_human_review": false,
             "priority": "medium"
         }
         
-        User: "Analyze our performance and create a report"
+        Example for complex request:
+        "Analyze performance, create content, and schedule posts"
         {
             "primary_agent": "analytics",
-            "workflow_type": "direct",
-            "reasoning": "Analytics agent can both analyze and generate reports",
-            "secondary_agents": [],
-            "parallel_tasks": [],
+            "workflow_type": "sequential",
+            "reasoning": "Multi-step workflow: analyze first, then create content based on insights, then schedule",
+            "secondary_agents": ["content", "publishing"],
             "requires_human_review": false,
             "priority": "medium"
         }"""
@@ -342,6 +316,73 @@ class CentralRouter:
             "requires_human_review": False,
             "priority": "medium"
         }
+    
+    def _enhanced_fallback_routing(self, user_request: str) -> Dict[str, Any]:
+        """
+        Enhanced fallback routing for complex multi-step requests
+        """
+        request_lower = user_request.lower()
+        
+        # Detect complex multi-step workflows
+        steps = []
+        
+        # Check for analytics/performance analysis
+        if any(word in request_lower for word in ["analyze", "performance", "metrics", "insights", "data"]):
+            steps.append("analytics")
+        
+        # Check for content creation
+        if any(word in request_lower for word in ["create", "generate", "write", "content", "post", "reel", "script"]):
+            steps.append("content")
+        
+        # Check for publishing/scheduling
+        if any(word in request_lower for word in ["schedule", "publish", "post", "optimal time"]):
+            steps.append("publishing")
+        
+        # Check for community/sentiment monitoring
+        if any(word in request_lower for word in ["monitor", "comments", "sentiment", "engagement", "discussion"]):
+            steps.append("community")
+        
+        # Check for listening/social monitoring
+        if any(word in request_lower for word in ["listen", "mentions", "track", "monitor"]):
+            steps.append("listening")
+        
+        # Remove duplicates while preserving order
+        unique_steps = []
+        for step in steps:
+            if step not in unique_steps:
+                unique_steps.append(step)
+        
+        if len(unique_steps) > 1:
+            return {
+                "primary_agent": unique_steps[0],
+                "workflow_type": "sequential",
+                "reasoning": f"Complex multi-step workflow detected with {len(unique_steps)} agents: {', '.join(unique_steps)}",
+                "secondary_agents": unique_steps[1:],
+                "parallel_tasks": [],
+                "requires_human_review": "approval" in request_lower or "review" in request_lower,
+                "priority": "high" if "urgent" in request_lower else "medium"
+            }
+        elif len(unique_steps) == 1:
+            return {
+                "primary_agent": unique_steps[0],
+                "workflow_type": "direct",
+                "reasoning": f"Single-step workflow for {unique_steps[0]} agent",
+                "secondary_agents": [],
+                "parallel_tasks": [],
+                "requires_human_review": False,
+                "priority": "medium"
+            }
+        else:
+            # Fallback to strategy for unclear requests
+            return {
+                "primary_agent": "strategy",
+                "workflow_type": "direct",
+                "reasoning": "Unclear request, defaulting to strategy agent",
+                "secondary_agents": [],
+                "parallel_tasks": [],
+                "requires_human_review": False,
+                "priority": "medium"
+            }
     
     def analyze_complexity(self, user_request: str) -> Dict[str, Any]:
         """
