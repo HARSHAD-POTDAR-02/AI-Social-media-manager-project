@@ -135,8 +135,8 @@ class ContentAgent:
                 feedback=critique
             )
             
-            # If content didn't improve significantly, break early
-            if improved_content == content or not improved_content.strip():
+            # Only break if content is exactly the same (avoid early termination)
+            if improved_content.strip() == content.strip():
                 break
                 
             content = improved_content
@@ -168,12 +168,14 @@ class ContentAgent:
                 'status': 'completed'
             })
         
-        # Track agent response
-        state['agent_responses'].append({
-            'agent': self.name,
-            'action': 'content_creation',
-            'result': f'Content generated with {reflections} reflection cycles',
-            'reflection_count': reflections
-        })
+        # Track agent response - only add if not already added for this agent
+        existing_responses = [r for r in state.get('agent_responses', []) if r.get('agent') == self.name]
+        if not existing_responses:
+            state['agent_responses'].append({
+                'agent': self.name,
+                'action': 'content_creation',
+                'result': f'Content generated with {reflections} reflection cycles',
+                'reflection_count': reflections
+            })
         
         return state

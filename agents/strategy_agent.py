@@ -30,10 +30,13 @@ class StrategyAgent:
             'trends': 'Trend analysis complete'
         }
         
-        state['agent_responses'].append({
-            'agent': self.name,
-            'action': 'strategy_planning',
-            'result': 'Content strategy developed'
-        })
+        # Only add response if not already added for this agent
+        existing_responses = [r for r in state.get('agent_responses', []) if r.get('agent') == self.name]
+        if not existing_responses:
+            state['agent_responses'].append({
+                'agent': self.name,
+                'action': 'strategy_planning',
+                'result': 'Content strategy developed'
+            })
         
         return state

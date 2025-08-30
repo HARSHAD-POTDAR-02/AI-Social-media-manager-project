@@ -29,11 +29,14 @@ class AnalyticsAgent:
             'roi': 3.5
         }
         
-        state['agent_responses'].append({
-            'agent': self.name,
-            'action': 'performance_analysis',
-            'result': 'Analytics report generated',
-            'metrics': state['performance_metrics']
-        })
+        # Only add response if not already added for this agent
+        existing_responses = [r for r in state.get('agent_responses', []) if r.get('agent') == self.name]
+        if not existing_responses:
+            state['agent_responses'].append({
+                'agent': self.name,
+                'action': 'performance_analysis',
+                'result': 'Analytics report generated',
+                'metrics': state['performance_metrics']
+            })
         
         return state

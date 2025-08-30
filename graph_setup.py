@@ -119,10 +119,8 @@ class SocialMediaManagerGraph:
         """
         Add all agent nodes to the graph
         """
-        # Entry point and orchestration
+        # Entry point with integrated routing
         self.workflow.add_node("user_input", self.process_user_input)
-        self.workflow.add_node("orchestrator", self.orchestrator.process)
-        self.workflow.add_node("route_request", self.route_request)
         
         # Core agents
         self.workflow.add_node("strategy", self.strategy_agent.process)
@@ -161,15 +159,9 @@ class SocialMediaManagerGraph:
         # Set entry point
         self.workflow.set_entry_point("user_input")
         
-        # From user input to orchestrator
-        self.workflow.add_edge("user_input", "orchestrator")
-        
-        # From orchestrator to routing
-        self.workflow.add_edge("orchestrator", "route_request")
-        
-        # Conditional routing based on intent classification
+        # Direct routing from user input to first agent (skip orchestrator)
         self.workflow.add_conditional_edges(
-            "route_request",
+            "user_input",
             self.determine_workflow_path,
             {
                 "strategy": "strategy",
@@ -182,8 +174,7 @@ class SocialMediaManagerGraph:
                 "influencer": "influencer",
                 "paid_social": "paid_social",
                 "compliance": "compliance",
-                "parallel": "parallel_coordinator",
-                "sequential": "strategy",  # Start sequential workflow with strategy
+                "parallel": "parallel_coordinator"
             }
         )
         
@@ -233,22 +224,14 @@ class SocialMediaManagerGraph:
         
         # Human review edges
         self.workflow.add_edge("human_review", "apply_human_feedback")
-        self.workflow.add_conditional_edges(
-            "apply_human_feedback",
-            self.route_after_human_feedback,
-            {
-                "retry": "route_request",
-                "continue": "prepare_response",
-                "error": "error_handler"
-            }
-        )
+        self.workflow.add_edge("apply_human_feedback", "prepare_response")
         
         # Error handling edges
         self.workflow.add_conditional_edges(
             "error_handler",
             self.determine_error_recovery,
             {
-                "retry": "route_request",
+                "retry": "prepare_response",
                 "human": "human_review",
                 "end": "complete"
             }
@@ -258,11 +241,18 @@ class SocialMediaManagerGraph:
         self.workflow.add_edge("prepare_response", "complete")
         self.workflow.add_edge("complete", END)
     
-    def route_request(self, state: GraphState) -> GraphState:
+
+        
+    def process_user_input(self, state: GraphState) -> GraphState:
         """
-        Use the central router to determine which agent(s) to invoke
+        Process initial user input and prepare state with routing
         """
-        # Get routing decision from the router
+        state['timestamp'] = datetime.now()
+        state['workflow_step'] = 0
+        state['retry_count'] = 0
+        state['agent_responses'] = []
+        
+        # Do routing immediately in user input processing
         routing_decision = self.router.route(state['user_request'], state.get('context_data', {}))
         
         # Set basic state from routing decision
@@ -284,23 +274,11 @@ class SocialMediaManagerGraph:
         if 'agent_tasks' in routing_decision:
             state['context_data']['agent_tasks'] = routing_decision['agent_tasks']
         
-        # Handle parallel tasks if needed
-        if routing_decision['workflow_type'] == 'parallel':
-            state['parallel_tasks'] = routing_decision.get('parallel_tasks', [])
-        
         # Set human review flag if needed
         state['approval_needed'] = routing_decision.get('requires_human_review', False)
         
-        return state
+        print(f"Router Decision: {routing_decision}")
         
-    def process_user_input(self, state: GraphState) -> GraphState:
-        """
-        Process initial user input and prepare state
-        """
-        state['timestamp'] = datetime.now()
-        state['workflow_step'] = 0
-        state['retry_count'] = 0
-        state['agent_responses'] = []
         return state
         
     def determine_workflow_path(self, state: GraphState) -> str:
@@ -320,16 +298,7 @@ class SocialMediaManagerGraph:
         # Direct routing to specific agent
         return state.get('current_agent', 'strategy')
     
-    def check_human_review(self, state: GraphState) -> str:
-        """
-        Check if human review is needed
-        """
-        if state.get('approval_needed', False):
-            return 'human_review'
-        elif state.get('error_state'):
-            return 'error'
-        else:
-            return 'continue'
+
 
     def next_step_router(self, state: GraphState) -> str:
         """
@@ -371,69 +340,11 @@ class SocialMediaManagerGraph:
         
         return 'prepare_response'
     
-    def check_compliance(self, state: GraphState) -> str:
-        """
-        Check compliance status
-        """
-        if state.get('error_state'):
-            return 'error'
-        elif state.get('compliance_status', {}).get('passed', False):
-            return 'passed'
-        else:
-            return 'failed'
+
     
-    def determine_analytics_output(self, state: GraphState) -> str:
-        """
-        Determine analytics workflow output
-        """
-        if state.get('error_state'):
-            return 'error'
 
-        # Default behavior: return a report (maps to prepare_response)
-        analytics_type = state.get('context_data', {}).get('analytics_type', 'report')
-
-        # If not in a sequential plan, or there's no next planned step, finish
-        if state.get('workflow_type') != 'sequential':
-            return 'report'
-
-        seq = state.get('planned_sequence', [])
-        idx = state.get('sequence_index', 0) + 1  # next index after analytics
-        next_agent = seq[idx] if idx < len(seq) else None
-
-        # Allow branching only when it matches the next planned agent
-        if analytics_type == 'strategy_input' and next_agent == 'strategy':
-            return 'strategy_input'
-        if analytics_type == 'content_optimization' and next_agent == 'content':
-            return 'content_optimization'
-
-        # Otherwise, finalize (report -> prepare_response)
-        return 'report'
     
-    def determine_community_action(self, state: GraphState) -> str:
-        """
-        Determine community management action
-        """
-        if state.get('error_state'):
-            return 'error'
 
-        action = state.get('context_data', {}).get('community_action', 'response')
-
-        # If not sequential, or no planned next step, respond directly (-> prepare_response)
-        if state.get('workflow_type') != 'sequential':
-            return 'response'
-
-        seq = state.get('planned_sequence', [])
-        idx = state.get('sequence_index', 0) + 1
-        next_agent = seq[idx] if idx < len(seq) else None
-
-        # Allow escalation/monitoring only if planned next step matches
-        if action == 'crisis' and next_agent == 'crisis':
-            return 'crisis'
-        if action == 'monitoring' and next_agent == 'listening':
-            return 'monitoring'
-
-        # Otherwise, keep it as a direct response
-        return 'response'
     
     def assess_crisis_level(self, state: GraphState) -> str:
         """
@@ -477,21 +388,9 @@ class SocialMediaManagerGraph:
         """
         print("Applying human feedback")
         state['approval_needed'] = False
-        
-        # For sequential workflows, we want to continue to the next agent
-        # This is handled in route_after_human_feedback
         return state
     
-    def route_after_human_feedback(self, state: GraphState) -> str:
-        """
-        Determine routing after human feedback
-        """
-        if state.get('human_feedback') == 'retry':
-            return 'retry'
-        elif state.get('error_state'):
-            return 'error'
-        else:
-            return 'continue'
+
     
     def handle_error(self, state: GraphState) -> GraphState:
         """

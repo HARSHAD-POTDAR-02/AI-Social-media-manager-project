@@ -22,12 +22,15 @@ class CommunityAgent:
         print(f"Community Agent processing: {state.get('user_request', '')}")
         print("COMMUNITY AGENT IS PROCESSING")
         
-        state['agent_responses'].append({
-            'agent': self.name,
-            'action': 'community_management',
-            'result': 'Community engagement handled',
-            'sentiment': 'positive',
-            'responses_sent': 10
-        })
+        # Only add response if not already added for this agent
+        existing_responses = [r for r in state.get('agent_responses', []) if r.get('agent') == self.name]
+        if not existing_responses:
+            state['agent_responses'].append({
+                'agent': self.name,
+                'action': 'community_management',
+                'result': 'Community engagement handled',
+                'sentiment': 'positive',
+                'responses_sent': 10
+            })
         
         return state

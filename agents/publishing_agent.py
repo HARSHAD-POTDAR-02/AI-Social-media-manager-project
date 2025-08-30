@@ -22,11 +22,14 @@ class PublishingAgent:
         print(f"Publishing Agent processing: {state.get('user_request', '')}")
         print("🚀 PUBLISHING AGENT IS PROCESSING")
         
-        state['agent_responses'].append({
-            'agent': self.name,
-            'action': 'content_publishing',
-            'result': 'Content scheduled and published',
-            'platforms': ['Instagram', 'LinkedIn', 'Twitter', 'Facebook']
-        })
+        # Only add response if not already added for this agent
+        existing_responses = [r for r in state.get('agent_responses', []) if r.get('agent') == self.name]
+        if not existing_responses:
+            state['agent_responses'].append({
+                'agent': self.name,
+                'action': 'content_publishing',
+                'result': 'Content scheduled and published',
+                'platforms': ['Instagram', 'LinkedIn', 'X', 'Facebook']
+            })
         
         return state
