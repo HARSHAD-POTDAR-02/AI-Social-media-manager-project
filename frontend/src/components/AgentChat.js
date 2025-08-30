@@ -5,7 +5,7 @@ import {
   CpuChipIcon,
   CheckCircleIcon,
   ClockIcon,
-  ExclamationTriangleIcon
+  SparklesIcon
 } from '@heroicons/react/24/outline';
 
 const API_BASE_URL = 'http://localhost:8000';

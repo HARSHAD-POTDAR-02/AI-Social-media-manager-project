@@ -5,7 +5,6 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ClockIcon,
-  UserIcon,
   SparklesIcon,
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline';

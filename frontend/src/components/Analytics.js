@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
 import { 
   ChartBarIcon, 
-  TrendingUpIcon, 
-  TrendingDownIcon,
+  ArrowTrendingUpIcon, 
+  ArrowTrendingDownIcon,
   EyeIcon,
   HeartIcon,
   ShareIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { 
-  LineChart, 
-  Line, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
@@ -159,9 +158,9 @@ const Analytics = () => {
                   <p className="text-2xl font-bold text-gray-900 mt-1">{metric.value}</p>
                   <div className="flex items-center mt-2">
                     {metric.changeType === 'increase' ? (
-                      <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
+                      <ArrowTrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
                     ) : (
-                      <TrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
+                      <ArrowTrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
                     )}
                     <span className={`text-sm font-medium ${
                       metric.changeType === 'increase' ? 'text-green-600' : 'text-red-600'
@@ -304,7 +303,7 @@ const Analytics = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
             <div className="flex items-center space-x-2 mb-2">
-              <TrendingUpIcon className="w-5 h-5 text-green-600" />
+              <ArrowTrendingUpIcon className="w-5 h-5 text-green-600" />
               <span className="font-medium text-green-800">Growth Opportunity</span>
             </div>
             <p className="text-sm text-green-700">

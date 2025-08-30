@@ -1,20 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   ChartBarIcon, 
   HeartIcon, 
   EyeIcon, 
   ShareIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   CalendarIcon,
   ClockIcon,
   SparklesIcon,
-  PhotoIcon
+  PhotoIcon,
+  ChatBubbleLeftRightIcon,
+  PlusIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const Dashboard = () => {
-  const [analyticsData, setAnalyticsData] = useState([
+  const [analyticsData] = useState([
     { name: 'Mon', engagement: 4000, reach: 2400, impressions: 8000 },
     { name: 'Tue', engagement: 3000, reach: 1398, impressions: 6000 },
     { name: 'Wed', engagement: 2000, reach: 9800, impressions: 7000 },
@@ -24,13 +27,13 @@ const Dashboard = () => {
     { name: 'Sun', engagement: 3490, reach: 4300, impressions: 9500 }
   ]);
 
-  const [sentimentData, setSentimentData] = useState([
+  const [sentimentData] = useState([
     { name: 'Positive', value: 65, color: '#10B981' },
     { name: 'Neutral', value: 25, color: '#6B7280' },
     { name: 'Negative', value: 10, color: '#EF4444' }
   ]);
 
-  const [currentPost, setCurrentPost] = useState({
+  const [currentPost] = useState({
     platform: 'Instagram',
     content: "🌟 Exciting news! Our new summer collection is here! ☀️ Discover fresh styles that'll make you shine this season. What's your favorite piece? 👇 #SummerVibes #NewCollection #Fashion",
     image: "https://images.pexels.com/photos/1536619/pexels-photo-1536619.jpeg?auto=compress&cs=tinysrgb&w=400",
@@ -39,14 +42,14 @@ const Dashboard = () => {
     engagement: { likes: 1247, comments: 89, shares: 156 }
   });
 
-  const [nextPost, setNextPost] = useState({
+  const [nextPost] = useState({
     platform: 'LinkedIn',
     content: "💼 Behind the scenes: How our team creates authentic content that resonates. Our 3-step process for building meaningful connections with your audience. Read more in comments! #ContentStrategy #Marketing",
     scheduledFor: "Tomorrow, 9:00 AM",
     status: "pending"
   });
 
-  const [contentStrategy, setContentStrategy] = useState({
+  const [contentStrategy] = useState({
     theme: "Summer Campaign 2025",
     focus: "User-generated content & community engagement",
     keyTopics: ["Summer fashion", "Sustainability", "Community stories"],
@@ -113,9 +116,9 @@ const Dashboard = () => {
                   <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
                   <div className="flex items-center mt-2">
                     {stat.changeType === 'increase' ? (
-                      <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
+                      <ArrowTrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
                     ) : (
-                      <TrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
+                      <ArrowTrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
                     )}
                     <span className={`text-sm font-medium ${
                       stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { 
   HomeIcon, 
   ChatBubbleLeftRightIcon, 
@@ -7,8 +7,7 @@ import {
   UserGroupIcon,
   CogIcon,
   BellIcon,
-  MagnifyingGlassIcon,
-  PlusIcon
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 import { 
   HomeIcon as HomeSolid,
@@ -27,11 +26,11 @@ import Analytics from './components/Analytics';
 import Community from './components/Community';
 import TaskQueue from './components/TaskQueue';
 
-const API_BASE_URL = 'http://localhost:8000';
+
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [notifications, setNotifications] = useState([
+  const [notifications] = useState([
     { id: 1, message: "Content strategy updated", time: "2 min ago", type: "info" },
     { id: 2, message: "New comment on Instagram post", time: "5 min ago", type: "engagement" },
     { id: 3, message: "Analytics report ready", time: "10 min ago", type: "analytics" }
