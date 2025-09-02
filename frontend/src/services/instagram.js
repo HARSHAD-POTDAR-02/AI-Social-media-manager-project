@@ -3,12 +3,26 @@ import api from './api';
 export const instagramService = {
   // Get Instagram account information
   getAccountInfo: async () => {
-    return await api.get('/instagram/account');
+    try {
+      const response = await api.get('/instagram/account');
+      console.log('Account response:', response);
+      return response;
+    } catch (error) {
+      console.error('getAccountInfo error:', error);
+      throw error;
+    }
   },
 
   // Get recent media posts
   getMediaList: async (limit = 25) => {
-    return await api.get(`/instagram/media?limit=${limit}`);
+    try {
+      const response = await api.get(`/instagram/media?limit=${limit}`);
+      console.log('Media response:', response);
+      return response;
+    } catch (error) {
+      console.error('getMediaList error:', error);
+      throw error;
+    }
   },
 
   // Get account insights
@@ -23,6 +37,13 @@ export const instagramService = {
 
   // Get top performing posts
   getTopPosts: async (limit = 10) => {
-    return await api.get(`/instagram/top-posts?limit=${limit}`);
+    try {
+      const response = await api.get(`/instagram/top-posts?limit=${limit}`);
+      console.log('Top posts response:', response);
+      return response;
+    } catch (error) {
+      console.error('getTopPosts error:', error);
+      throw error;
+    }
   }
 };

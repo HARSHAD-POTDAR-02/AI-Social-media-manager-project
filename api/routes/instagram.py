@@ -77,9 +77,13 @@ async def get_account_insights(days: int = 7):
 @router.get("/insights/media/{media_id}")
 async def get_media_insights(media_id: str):
     """Get insights for specific media"""
+    instagram_service = get_instagram_service()
+    if not instagram_service:
+        raise HTTPException(status_code=500, detail="Instagram service not initialized")
+    
     try:
         data = instagram_service.get_media_insights(media_id)
-        return {"success": True, "data": data}
+        return data
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -18,6 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from graph_setup import SocialMediaManagerGraph
 from dotenv import load_dotenv
 from routes.instagram import router as instagram_router
+from routes.scheduling import router as scheduling_router
 
 # Load environment variables from the api/.env file
 load_dotenv('.env')
@@ -35,6 +36,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(instagram_router)
+app.include_router(scheduling_router)
 
 # Initialize the graph
 groq_api_key = os.getenv("GROQ_API_KEY")

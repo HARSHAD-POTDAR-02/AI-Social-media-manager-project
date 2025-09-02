@@ -5,7 +5,13 @@ Simplified architecture with clear separation of concerns
 
 from typing import Dict, Any, List, Optional
 import os
+import requests
+import json
 from groq import Groq
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 class ContentAgent:
@@ -24,6 +30,14 @@ class ContentAgent:
         self.client = Groq(api_key=api_key) if api_key else None
         self.model = "llama-3.1-8b-instant"
         self.max_reflections = 3  # Reduced from 5 for better performance
+        
+        # OpenRouter setup for image generation
+        self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+        if not self.openrouter_api_key:
+            print("Warning: OPENROUTER_API_KEY is not set. Image generation will be disabled.")
+        else:
+            print(f"OpenRouter API key loaded: {self.openrouter_api_key[:20]}...")
+        self.image_model = "google/gemini-2.5-flash-image-preview:free"
 
     def _call_llm(self, system_prompt: str, user_prompt: str, temperature: float = 0.5) -> str:
         """Simplified LLM call method"""
@@ -85,6 +99,43 @@ class ContentAgent:
         Please provide constructive criticism and specific improvement suggestions."""
         
         return self._call_llm(system_prompt, user_prompt, temperature=0.3)
+    
+    def _generate_image(self, prompt: str) -> Optional[str]:
+        """Generate image URL from Pollinations AI"""
+        try:
+            print(f"Generating image with prompt: {prompt}")
+            
+            # Always use Pollinations AI for image generation
+            encoded_prompt = requests.utils.quote(prompt)
+            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024"
+            print(f"Generated image URL: {image_url}")
+            
+            # Return the URL directly instead of downloading
+            return image_url
+            
+            # # Commented out download code - keep for future use if needed
+            # # Create images directory if it doesn't exist
+            # import os
+            # os.makedirs("generated_images", exist_ok=True)
+            # 
+            # # Generate filename
+            # import time
+            # filename = f"generated_images/image_{int(time.time())}.jpg"
+            # 
+            # # Download the image
+            # response = requests.get(image_url, timeout=30)
+            # if response.status_code == 200:
+            #     with open(filename, 'wb') as f:
+            #         f.write(response.content)
+            #     print(f"Image saved to: {filename}")
+            #     return filename
+            # else:
+            #     print(f"Failed to download image: {response.status_code}")
+            #     return None
+                
+        except Exception as e:
+            print(f"Error generating image: {e}")
+            return None
 
     def _create_content_brief(self, state: Dict[str, Any]) -> str:
         """Create a clear content brief from state"""
@@ -111,13 +162,53 @@ class ContentAgent:
             brief_parts.append(f"Feedback to incorporate: {ctx['content_feedback']}")
         
         return "\n".join(brief_parts)
+    
+    def _needs_image(self, request: str) -> bool:
+        """Check if request needs image generation"""
+        image_keywords = ['image', 'picture', 'photo', 'visual', 'generate image', 'create image', 'make image']
+        return any(keyword in request.lower() for keyword in image_keywords)
+    
+    def _extract_image_prompt(self, request: str) -> str:
+        """Extract image description from user request"""
+        # Simple extraction - look for patterns like "image of X" or "make image X"
+        request_lower = request.lower()
+        
+        # Try different patterns
+        patterns = [
+            'image of ',
+            'picture of ',
+            'photo of ',
+            'generate image ',
+            'create image ',
+            'make image '
+        ]
+        
+        for pattern in patterns:
+            if pattern in request_lower:
+                start_idx = request_lower.find(pattern) + len(pattern)
+                # Extract until next sentence or end
+                remaining = request[start_idx:].split('.')[0].split('and')[0].strip()
+                if remaining:
+                    return remaining
+        
+        # Fallback: use the whole request
+        return request
 
     def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Simplified content creation - always completes in one call
+        Enhanced content creation with image generation support
         """
         print(f"Content Agent processing: {state.get('user_request', '')}")
         state["current_agent"] = self.name
+        
+        user_request = state.get('user_request', '')
+        
+        # Check if image generation is needed
+        image_url = None
+        if self._needs_image(user_request):
+            image_prompt = self._extract_image_prompt(user_request)
+            print(f"Image generation requested: {image_prompt}")
+            image_url = self._generate_image(image_prompt)
         
         # Create brief and generate content
         brief = self._create_content_brief(state)
@@ -130,20 +221,34 @@ class ContentAgent:
             if improved and len(improved) > 10:
                 content = improved
         
-        # Always set results
-        state['generated_content'] = {
+        # Set results with image if generated
+        result = {
             'content': content,
             'reflection_count': 3,
             'status': 'completed'
         }
         
-        # Always add agent response
-        state['agent_responses'].append({
-            'agent': self.name,
-            'action': 'content_creation',
-            'result': f'Generated content: {content[:50]}...',
-            'reflection_count': 3
-        })
+        if image_url:
+            result['image_path'] = image_url  # Now it's a file path
+            result['has_image'] = True
         
-        print(f"Content generated: {len(content)} chars")
+        state['generated_content'] = result
+        
+        # Add agent response only once
+        existing_responses = [r for r in state.get('agent_responses', []) if r.get('agent') == self.name]
+        if not existing_responses:
+            response_text = f'Generated content: {content[:50]}...'
+            if image_url:
+                response_text += f' | Image: {image_url}'
+            
+            state['agent_responses'].append({
+                'agent': self.name,
+                'action': 'content_creation',
+                'result': response_text,
+                'reflection_count': 3,
+                'has_image': bool(image_url),
+                'image_url': image_url
+            })
+        
+        print(f"Content generated: {len(content)} chars, Image: {bool(image_url)}")
         return state

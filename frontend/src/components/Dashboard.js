@@ -71,12 +71,12 @@ const Dashboard = () => {
         // Fetch recent posts first to get engagement data
         const mediaResponse = await instagramService.getMediaList(10);
 
-        
         let totalLikes = 0;
         let totalComments = 0;
+        let posts = [];
         
         if (mediaResponse.success && mediaResponse.data && mediaResponse.data.data && mediaResponse.data.data.length > 0) {
-          const posts = mediaResponse.data.data;
+          posts = mediaResponse.data.data;
           const latestPost = posts[0];
 
           
@@ -151,20 +151,44 @@ const Dashboard = () => {
           }
         ]);
         
-        // Create analytics data based on real engagement
-        const baseEngagement = totalEngagement || 0;
-        const baseReach = Math.max(followerCount, totalEngagement * 5) || 0;
-        const baseImpressions = Math.max(baseReach * 2, totalEngagement * 10) || 0;
-        
-        setAnalyticsData([
-          { name: 'Mon', engagement: 0, reach: 0, impressions: 0 },
-          { name: 'Tue', engagement: 0, reach: 0, impressions: 0 },
-          { name: 'Wed', engagement: 0, reach: 0, impressions: 0 },
-          { name: 'Thu', engagement: 0, reach: 0, impressions: 0 },
-          { name: 'Fri', engagement: 0, reach: 0, impressions: 0 },
-          { name: 'Sat', engagement: Math.floor(baseEngagement * 0.7), reach: Math.floor(baseReach * 0.8), impressions: Math.floor(baseImpressions * 0.6) },
-          { name: 'Today', engagement: baseEngagement, reach: baseReach, impressions: baseImpressions }
-        ]);
+        // Create real analytics data from actual posts with insights
+        if (posts && posts.length > 0) {
+          const last7Posts = posts.slice(0, 7);
+          const analyticsPromises = last7Posts.map(async (post) => {
+            try {
+              const insightsResponse = await fetch(`http://localhost:8000/instagram/insights/media/${post.id}`);
+              const insights = await insightsResponse.json();
+              
+              let impressions = 0, reach = 0;
+              if (insights.data) {
+                const impressionsMetric = insights.data.find(m => m.name === 'impressions');
+                const reachMetric = insights.data.find(m => m.name === 'reach');
+                impressions = impressionsMetric?.values?.[0]?.value || 0;
+                reach = reachMetric?.values?.[0]?.value || 0;
+              }
+              
+              return {
+                name: new Date(post.timestamp).toLocaleDateString('en-US', { weekday: 'short' }),
+                engagement: (post.like_count || 0) + (post.comments_count || 0),
+                reach: reach,
+                impressions: impressions
+              };
+            } catch (error) {
+              console.log(`Could not fetch insights for post ${post.id}:`, error);
+              return {
+                name: new Date(post.timestamp).toLocaleDateString('en-US', { weekday: 'short' }),
+                engagement: (post.like_count || 0) + (post.comments_count || 0),
+                reach: 0,
+                impressions: 0
+              };
+            }
+          });
+          
+          const realAnalyticsData = await Promise.all(analyticsPromises);
+          setAnalyticsData(realAnalyticsData);
+        } else {
+          setAnalyticsData([{ name: 'No Data', engagement: 0, reach: 0, impressions: 0 }]);
+        }
         
         // Calculate sentiment based on engagement
         const engagementRate = followerCount > 0 ? (totalEngagement / followerCount) * 100 : 0;
@@ -194,7 +218,8 @@ const Dashboard = () => {
       
     } catch (err) {
       console.error('Error fetching Instagram data:', err);
-      setError('Failed to load Instagram data');
+      console.error('Error details:', err.response?.data);
+      setError(`Failed to load Instagram data: ${err.response?.data?.detail || err.message}`);
     } finally {
       setLoading(false);
     }

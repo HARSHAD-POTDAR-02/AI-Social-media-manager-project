@@ -339,7 +339,7 @@ class SocialMediaManagerGraph:
         agent_responses = state.get('agent_responses', [])
         current_agent = state.get('current_agent')
         
-        # Prevent infinite loops - max 10 total agent responses
+        # Prevent infinite loops - max 10 responses total
         if len(agent_responses) >= 10:
             return 'prepare_response'
 
@@ -353,13 +353,15 @@ class SocialMediaManagerGraph:
             if not agent_queue:
                 return 'prepare_response'
             
-            # Only remove agent from queue if it matches current agent
-            if agent_queue and agent_queue[0] == current_agent:
-                agent_queue.pop(0)
+            # Always remove current agent from queue after processing
+            if current_agent in agent_queue:
+                agent_queue.remove(current_agent)
                 state['agent_queue'] = agent_queue
+                print(f"Removed {current_agent} from queue. Remaining: {agent_queue}")
             
             if agent_queue:
                 next_agent = agent_queue[0]
+                print(f"Next agent: {next_agent}")
                 return next_agent
             else:
                 return 'prepare_response'

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { instagramService } from '../services/instagram';
 import { 
   ChartBarIcon, 
   ArrowTrendingUpIcon, 
@@ -26,8 +27,10 @@ import {
 
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState('7d');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  const performanceData = [
+  const [performanceData, setPerformanceData] = useState([
     { date: '2025-01-01', engagement: 4200, reach: 12400, impressions: 28000, clicks: 890 },
     { date: '2025-01-02', engagement: 3800, reach: 11200, impressions: 25000, clicks: 750 },
     { date: '2025-01-03', engagement: 5100, reach: 15600, impressions: 32000, clicks: 1200 },
@@ -35,91 +38,186 @@ const Analytics = () => {
     { date: '2025-01-05', engagement: 3900, reach: 12100, impressions: 26800, clicks: 820 },
     { date: '2025-01-06', engagement: 6200, reach: 18900, impressions: 38000, clicks: 1450 },
     { date: '2025-01-07', engagement: 5800, reach: 17200, impressions: 35500, clicks: 1320 }
-  ];
-
-  const platformData = [
-    { platform: 'Instagram', posts: 45, engagement: 8900, color: '#E1306C' },
-    { platform: 'LinkedIn', posts: 28, engagement: 5600, color: '#0077B5' },
-    { platform: 'Twitter', posts: 67, engagement: 4200, color: '#1DA1F2' },
-    { platform: 'Facebook', posts: 32, engagement: 3800, color: '#1877F2' }
-  ];
-
-  const contentTypeData = [
-    { type: 'Images', value: 45, color: '#3B82F6' },
-    { type: 'Videos', value: 30, color: '#10B981' },
-    { type: 'Carousels', value: 15, color: '#F59E0B' },
-    { type: 'Stories', value: 10, color: '#8B5CF6' }
-  ];
-
-  const topPosts = [
-    {
-      id: 1,
-      platform: 'Instagram',
-      content: "Behind the scenes of our latest photoshoot ✨",
-      engagement: 2847,
-      reach: 15600,
-      date: '2025-01-06'
-    },
-    {
-      id: 2,
-      platform: 'LinkedIn',
-      content: "5 tips for authentic brand storytelling in 2025",
-      engagement: 1923,
-      reach: 12400,
-      date: '2025-01-05'
-    },
-    {
-      id: 3,
-      platform: 'Twitter',
-      content: "Quick thread on social media trends to watch 🧵",
-      engagement: 1654,
-      reach: 8900,
-      date: '2025-01-04'
+  ]);
+  
+  const [metrics, setMetrics] = useState([]);
+  const [topPosts, setTopPosts] = useState([]);
+  
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [timeRange]);
+  
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch Instagram data
+      const accountResponse = await instagramService.getAccountInfo();
+      const mediaResponse = await instagramService.getMediaList(25);
+      const topPostsResponse = await instagramService.getTopPosts(10);
+      
+      if (accountResponse.success && mediaResponse.success) {
+        const account = accountResponse.data;
+        const posts = mediaResponse.data.data || [];
+        
+        // Calculate metrics
+        const totalLikes = posts.reduce((sum, post) => sum + (post.like_count || 0), 0);
+        const totalComments = posts.reduce((sum, post) => sum + (post.comments_count || 0), 0);
+        const totalEngagement = totalLikes + totalComments;
+        const avgEngagementRate = account.followers_count > 0 ? 
+          ((totalEngagement / (posts.length * account.followers_count)) * 100) : 0;
+        
+        // Update metrics
+        setMetrics([
+          {
+            name: 'Total Followers',
+            value: formatNumber(account.followers_count),
+            change: '+2.3%',
+            changePercent: '+1.8%',
+            changeType: 'increase',
+            icon: UserGroupIcon,
+            color: 'text-blue-600',
+            bgColor: 'bg-blue-50'
+          },
+          {
+            name: 'Avg. Engagement Rate',
+            value: avgEngagementRate.toFixed(1) + '%',
+            change: '+0.3%',
+            changePercent: '+7.1%',
+            changeType: 'increase',
+            icon: HeartIcon,
+            color: 'text-pink-600',
+            bgColor: 'bg-pink-50'
+          },
+          {
+            name: 'Total Posts',
+            value: formatNumber(account.media_count),
+            change: 'Active',
+            changePercent: '',
+            changeType: 'increase',
+            icon: EyeIcon,
+            color: 'text-green-600',
+            bgColor: 'bg-green-50'
+          },
+          {
+            name: 'Total Engagement',
+            value: formatNumber(totalEngagement),
+            change: formatNumber(totalLikes) + ' likes',
+            changePercent: '',
+            changeType: 'increase',
+            icon: ShareIcon,
+            color: 'text-purple-600',
+            bgColor: 'bg-purple-50'
+          }
+        ]);
+        
+        // Update platform data with real Instagram data
+        setPlatformData([
+          { platform: 'Instagram', posts: account.media_count, engagement: totalEngagement, color: '#E1306C' },
+          { platform: 'LinkedIn', posts: 0, engagement: 0, color: '#0077B5' },
+          { platform: 'Twitter', posts: 0, engagement: 0, color: '#1DA1F2' },
+          { platform: 'Facebook', posts: 0, engagement: 0, color: '#1877F2' }
+        ]);
+        
+        // Create real performance data from recent posts
+        const recentPosts = posts.slice(0, 7);
+        const realPerformanceData = recentPosts.map((post) => ({
+          date: new Date(post.timestamp).toLocaleDateString(),
+          engagement: (post.like_count || 0) + (post.comments_count || 0),
+          reach: 0,
+          impressions: 0
+        }));
+        
+        setPerformanceData(realPerformanceData.length > 0 ? realPerformanceData : [
+          { date: 'No Data', engagement: 0, reach: 0, impressions: 0 }
+        ]);
+        
+        // Calculate real content type distribution
+        const imageCount = posts.filter(post => post.media_type === 'IMAGE').length;
+        const videoCount = posts.filter(post => post.media_type === 'VIDEO').length;
+        const carouselCount = posts.filter(post => post.media_type === 'CAROUSEL_ALBUM').length;
+        const totalPosts = posts.length;
+        
+        if (totalPosts > 0) {
+          setContentTypeData([
+            { type: 'Images', value: Math.round((imageCount / totalPosts) * 100), color: '#3B82F6' },
+            { type: 'Videos', value: Math.round((videoCount / totalPosts) * 100), color: '#10B981' },
+            { type: 'Carousels', value: Math.round((carouselCount / totalPosts) * 100), color: '#F59E0B' },
+            { type: 'Stories', value: 0, color: '#8B5CF6' }
+          ]);
+        }
+      }
+      
+      // Update top posts
+      if (topPostsResponse.success) {
+        setTopPosts(topPostsResponse.data.slice(0, 3).map((post, index) => ({
+          id: index + 1,
+          platform: 'Instagram',
+          content: post.caption || 'No caption',
+          engagement: post.engagement,
+          reach: post.engagement * 5, // Estimated reach
+          date: new Date(post.timestamp).toLocaleDateString()
+        })));
+      }
+      
+    } catch (err) {
+      console.error('Analytics error:', err);
+      console.error('Error details:', err.response?.data);
+      setError(`Failed to load analytics data: ${err.response?.data?.detail || err.message}`);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+  
+  const formatNumber = (num) => {
+    if (!num) return '0';
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
 
-  const metrics = [
-    {
-      name: 'Total Followers',
-      value: '127.5K',
-      change: '+2.3K',
-      changePercent: '+1.8%',
-      changeType: 'increase',
-      icon: UserGroupIcon,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
-    },
-    {
-      name: 'Avg. Engagement Rate',
-      value: '4.2%',
-      change: '+0.3%',
-      changePercent: '+7.1%',
-      changeType: 'increase',
-      icon: HeartIcon,
-      color: 'text-pink-600',
-      bgColor: 'bg-pink-50'
-    },
-    {
-      name: 'Weekly Reach',
-      value: '89.2K',
-      change: '+12.1K',
-      changePercent: '+15.7%',
-      changeType: 'increase',
-      icon: EyeIcon,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
-    {
-      name: 'Click-through Rate',
-      value: '2.8%',
-      change: '-0.2%',
-      changePercent: '-6.7%',
-      changeType: 'decrease',
-      icon: ShareIcon,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
-    }
-  ];
+  const [platformData, setPlatformData] = useState([
+    { platform: 'Instagram', posts: 0, engagement: 0, color: '#E1306C' },
+    { platform: 'LinkedIn', posts: 0, engagement: 0, color: '#0077B5' },
+    { platform: 'Twitter', posts: 0, engagement: 0, color: '#1DA1F2' },
+    { platform: 'Facebook', posts: 0, engagement: 0, color: '#1877F2' }
+  ]);
+
+  const [contentTypeData, setContentTypeData] = useState([
+    { type: 'Images', value: 0, color: '#3B82F6' },
+    { type: 'Videos', value: 0, color: '#10B981' },
+    { type: 'Carousels', value: 0, color: '#F59E0B' },
+    { type: 'Stories', value: 0, color: '#8B5CF6' }
+  ]);
+
+
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading analytics data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 flex items-center justify-center h-full">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={fetchAnalyticsData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full">
