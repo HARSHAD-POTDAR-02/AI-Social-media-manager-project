@@ -157,7 +157,7 @@ class CentralRouter:
         """
         try:
             agents = [routing_decision['primary_agent']] + routing_decision.get('secondary_agents', [])
-
+            
             decompose_prompt = f"""Break down this complex request into specific tasks for each agent:
 
 User Request: {user_request}
@@ -173,7 +173,7 @@ Respond in JSON format:
     "publishing": "Schedule the 5 reels at optimal times over next week",
     "community": "Monitor comments and generate sentiment analysis report"
 }}"""
-
+            
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
@@ -181,23 +181,14 @@ Respond in JSON format:
                     {"role": "user", "content": decompose_prompt}
                 ],
                 temperature=0.1,
-                max_tokens=500,
-                response_format={"type": "json_object"}
+                max_tokens=500
             )
-
-            content = response.choices[0].message.content.strip()
-            data = json.loads(content)
-            if not isinstance(data, dict):
-                raise ValueError("Expected a JSON object mapping agents to tasks")
-
-            allowed = set(agents)
-            # Filter to only routed agents and ensure every agent has a key
-            data = {k: v for k, v in data.items() if k in allowed}
-            for a in allowed:
-                data.setdefault(a, "")
-
-            return data
-
+            
+            # Parse JSON response
+            json_match = re.search(r'\{.*\}', response.choices[0].message.content, re.DOTALL)
+            if json_match:
+                return json.loads(json_match.group())
+                
         except Exception as e:
             print(f"Task decomposition error: {e}")
         
@@ -294,14 +285,22 @@ Respond in JSON format:
         requires_review = False
         priority = "medium"
         
-        # Content-related requests - always use direct workflow to avoid loops
+        # Content-related requests
         content_keywords = ["create", "write", "generate", "post", "caption", "content"]
         if any(word in request_lower for word in content_keywords):
+            # Check if scheduling is explicitly mentioned
+            if "schedule" in request_lower or "publish" in request_lower:
+                workflow_type = "sequential"
+                secondary_agents = ["publishing"]
+                reasoning = "Content creation with scheduling requires sequential workflow"
+            else:
+                reasoning = "Direct content creation task"
+            
             return {
                 "primary_agent": "content",
-                "workflow_type": "direct",
-                "reasoning": "Direct content creation task",
-                "secondary_agents": [],
+                "workflow_type": workflow_type,
+                "reasoning": reasoning,
+                "secondary_agents": secondary_agents,
                 "parallel_tasks": [],
                 "requires_human_review": requires_review,
                 "priority": priority
