@@ -18,6 +18,7 @@ class ListeningAgent:
         """
         Process social listening tasks
         """
+        state['current_agent'] = self.name
         print(f"Listening Agent processing: {state.get('user_request', '')}")
         print("LISTENING AGENT IS PROCESSING")
         

@@ -18,6 +18,7 @@ class CrisisAgent:
         """
         Process crisis management tasks
         """
+        state['current_agent'] = self.name
         print(f"Crisis Agent processing: {state.get('user_request', '')}")
         print("CRISIS AGENT IS PROCESSING")
         

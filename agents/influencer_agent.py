@@ -18,6 +18,7 @@ class InfluencerAgent:
         """
         Process influencer-related tasks
         """
+        state['current_agent'] = self.name
         print(f"Influencer Agent processing: {state.get('user_request', '')}")
         print("INFLUENCER AGENT IS PROCESSING")
         

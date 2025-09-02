@@ -21,6 +21,9 @@ class ComplianceAgent:
         print(f"Compliance Agent processing: {state.get('user_request', '')}")
         print("COMPLIANCE AGENT IS PROCESSING")
         
+        # Set current agent for proper queue management
+        state['current_agent'] = self.name
+        
         # Compliance check
         compliance_passed = True  # Default to passing
         

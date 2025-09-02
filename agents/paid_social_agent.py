@@ -18,6 +18,7 @@ class PaidSocialAgent:
         """
         Process paid advertising tasks
         """
+        state['current_agent'] = self.name
         print(f"Paid Social Agent processing: {state.get('user_request', '')}")
         print("PAID SOCIAL AGENT IS PROCESSING")
         
