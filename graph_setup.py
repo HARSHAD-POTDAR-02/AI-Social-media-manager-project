@@ -196,9 +196,12 @@ class SocialMediaManagerGraph:
             "compliance": "compliance",
         }
         
-        # Use unified routing for most agents (including analytics for sequential flow)
+        # Content agent uses standard routing now
+        self.workflow.add_conditional_edges("content", self.next_step_router, post_map)
+        
+        # Use unified routing for other agents
         for node in [
-            "strategy","content","publishing","listening","analytics",
+            "strategy","publishing","listening","analytics",
             "influencer","paid_social","compliance","community"
         ]:
             self.workflow.add_conditional_edges(node, self.next_step_router, post_map)
@@ -285,66 +288,83 @@ class SocialMediaManagerGraph:
         """
         Determine the next node based on routing decision
         """
-        if state.get('workflow_type') == 'parallel':
+        current_agent = state.get('current_agent')
+        workflow_type = state.get('workflow_type')
+        
+        print(f"Determining path: agent={current_agent}, workflow={workflow_type}")
+        
+        if workflow_type == 'parallel':
             return 'parallel'
-        elif state.get('workflow_type') == 'sequential':
-            # Start with the first agent in the queue
-            queue = state.get('agent_queue', [state['current_agent']])
+        elif workflow_type == 'sequential':
+            queue = state.get('agent_queue', [])
             if queue:
-                state['current_agent'] = queue[0]
                 return queue[0]
-            return 'strategy'
+            return current_agent or 'strategy'
         
         # Direct routing to specific agent
-        return state.get('current_agent', 'strategy')
+        return current_agent or 'strategy'
     
 
 
+    def content_reflection_router(self, state: GraphState) -> str:
+        """
+        Handle content agent reflection cycles
+        """
+        reflection_state = state.get('content_reflection_state')
+        
+        # Continue reflection if cycle < 3
+        if reflection_state and reflection_state.get('cycle', 0) < 3:
+            return 'continue_reflection'
+        
+        # Reflection complete - determine next step
+        workflow_type = state.get('workflow_type')
+        if workflow_type == 'sequential':
+            agent_queue = state.get('agent_queue', [])
+            # Remove content from queue and get next agent
+            if agent_queue and agent_queue[0] == 'content':
+                agent_queue.pop(0)
+                state['agent_queue'] = agent_queue
+            
+            if agent_queue:
+                return agent_queue[0]  # Return next agent name
+        
+        return 'complete'
+    
     def next_step_router(self, state: GraphState) -> str:
         """
         Simple queue-based routing: remove completed agent and route to next in queue.
         """
         workflow_type = state.get('workflow_type')
         agent_queue = state.get('agent_queue', [])
+        agent_responses = state.get('agent_responses', [])
+        current_agent = state.get('current_agent')
         
-        print(f"DEBUG: next_step_router - workflow: {workflow_type}")
-        print(f"DEBUG: agent_queue before: {agent_queue}")
+        # Prevent infinite loops - max 10 total agent responses
+        if len(agent_responses) >= 10:
+            return 'prepare_response'
 
         if state.get('error_state'):
             return 'error'
 
         if workflow_type == 'direct':
-            if state.get('approval_needed', False):
-                return 'human_review'
             return 'prepare_response'
 
         if workflow_type == 'sequential':
             if not agent_queue:
                 return 'prepare_response'
             
-            # Remove the completed agent from front of queue
-            agent_queue.pop(0)
-            state['agent_queue'] = agent_queue
+            # Only remove agent from queue if it matches current agent
+            if agent_queue and agent_queue[0] == current_agent:
+                agent_queue.pop(0)
+                state['agent_queue'] = agent_queue
             
-            print(f"DEBUG: agent_queue after pop: {agent_queue}")
-            
-            if agent_queue:  # More agents to process
+            if agent_queue:
                 next_agent = agent_queue[0]
-                print(f"DEBUG: routing to next agent: {next_agent}")
                 return next_agent
-            else:  # Queue empty - end of sequence
-                print(f"DEBUG: queue empty - end of sequence")
-                if state.get('approval_needed', False):
-                    return 'human_review'
+            else:
                 return 'prepare_response'
         
         return 'prepare_response'
-    
-
-    
-
-    
-
     
     def assess_crisis_level(self, state: GraphState) -> str:
         """

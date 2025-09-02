@@ -17,9 +17,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from graph_setup import SocialMediaManagerGraph
 from dotenv import load_dotenv
+from routes.instagram import router as instagram_router
 
-# Load environment variables
-load_dotenv()
+# Load environment variables from the api/.env file
+load_dotenv('.env')
 
 app = FastAPI(title="AI Social Media Manager API", version="1.0.0")
 
@@ -31,6 +32,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(instagram_router)
 
 # Initialize the graph
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -66,12 +70,28 @@ async def chat_endpoint(request: ChatRequest):
         # Generate session ID if not provided
         session_id = request.session_id or f"web-session-{datetime.now().timestamp()}"
         
+        print(f"Processing chat request: {request.message}")
+        print(f"Session ID: {session_id}")
+        
         # Process the request through the graph
-        result = graph.run(
-            user_request=request.message,
-            session_id=session_id,
-            context_data=request.context_data or {}
-        )
+        try:
+            result = graph.run(
+                user_request=request.message,
+                session_id=session_id,
+                context_data=request.context_data or {}
+            )
+            print(f"Graph result: {result}")
+        except Exception as graph_error:
+            print(f"Graph execution error: {graph_error}")
+            # Return a simple response instead of failing
+            result = {
+                'workflow_type': 'direct',
+                'agent_queue': [],
+                'current_agent': 'orchestrator',
+                'agent_responses': [{'agent': 'orchestrator', 'action': 'error_handling', 'result': str(graph_error)}],
+                'generated_content': None,
+                'final_response': f'Request processed with error handling: {str(graph_error)}'
+            }
         
         # Format response
         response = ChatResponse(
@@ -88,6 +108,7 @@ async def chat_endpoint(request: ChatRequest):
         return response
         
     except Exception as e:
+        print(f"Chat endpoint error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
