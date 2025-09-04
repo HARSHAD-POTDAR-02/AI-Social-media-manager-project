@@ -22,6 +22,7 @@ import './App.css';
 import Dashboard from './components/Dashboard';
 import AgentChat from './components/AgentChat';
 import Calendar from './components/Calendar';
+import ContentCalendar from './components/ContentCalendar';
 import Analytics from './components/Analytics';
 import Community from './components/Community';
 import TaskQueue from './components/TaskQueue';
@@ -53,11 +54,11 @@ function App() {
       description: 'Chat with AI agents'
     },
     { 
-      name: 'Calendar', 
+      name: 'Content Calendar', 
       id: 'calendar', 
       icon: CalendarIcon, 
       iconSolid: CalendarSolid,
-      description: 'Content scheduling'
+      description: 'Schedule & manage posts'
     },
     { 
       name: 'Analytics', 
@@ -82,7 +83,7 @@ function App() {
       case 'agents':
         return <AgentChat />;
       case 'calendar':
-        return <Calendar />;
+        return <ContentCalendar />;
       case 'analytics':
         return <Analytics />;
       case 'community':

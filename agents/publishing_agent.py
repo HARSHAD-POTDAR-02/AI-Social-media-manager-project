@@ -41,21 +41,86 @@ class PublishingAgent:
         with open(self.posts_file, 'w') as f:
             json.dump(posts, f, indent=2, default=str)
     
+    def _parse_schedule_time(self, time_str: str) -> datetime:
+        """Parse various time formats into datetime"""
+        if not time_str:
+            # Default to current time + 1 minute for immediate scheduling
+            return datetime.now() + timedelta(minutes=1)
+        
+        if time_str.lower() == "now":
+            # Schedule for current time + 1 minute
+            return datetime.now() + timedelta(minutes=1)
+        
+        try:
+            # Try ISO format first
+            return datetime.fromisoformat(time_str)
+        except:
+            pass
+        
+        # Parse natural language times
+        time_str = time_str.lower().strip()
+        now = datetime.now()
+        
+        # Handle specific times like "8pm", "3:30pm", "14:00"
+        import re
+        
+        # Match patterns like "8pm", "8:30pm", "12.47pm", "20:00", "8:30 pm"
+        time_patterns = [
+            r'(\d{1,2})\.(\d{2})\s*pm',  # 12.47pm
+            r'(\d{1,2})\.(\d{2})\s*am',  # 8.30am
+            r'(\d{1,2}):(\d{2})\s*pm',  # 8:30pm
+            r'(\d{1,2}):(\d{2})\s*am',  # 8:30am
+            r'(\d{1,2})\s*pm',  # 8pm
+            r'(\d{1,2})\s*am',  # 8am
+            r'(\d{1,2}):(\d{2})',  # 14:30 (24h format)
+        ]
+        
+        for pattern in time_patterns:
+            match = re.search(pattern, time_str)
+            if match:
+                if 'pm' in time_str:
+                    hour = int(match.group(1))
+                    minute = int(match.group(2)) if len(match.groups()) > 1 else 0
+                    if hour != 12:
+                        hour += 12
+                elif 'am' in time_str:
+                    hour = int(match.group(1))
+                    minute = int(match.group(2)) if len(match.groups()) > 1 else 0
+                    if hour == 12:
+                        hour = 0
+                else:
+                    hour = int(match.group(1))
+                    minute = int(match.group(2)) if len(match.groups()) > 1 else 0
+                
+                target_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                
+                # If time has passed today, schedule for tomorrow
+                if target_time <= now:
+                    target_time += timedelta(days=1)
+                
+                return target_time
+        
+        # Handle day-specific scheduling
+        if 'tomorrow' in time_str:
+            base_date = now + timedelta(days=1)
+        elif 'monday' in time_str:
+            days_ahead = 0 - now.weekday()
+            if days_ahead <= 0:
+                days_ahead += 7
+            base_date = now + timedelta(days=days_ahead)
+        else:
+            base_date = now
+        
+        # Default to 9 AM if no specific time
+        return base_date.replace(hour=9, minute=0, second=0, microsecond=0)
+    
     def _create_scheduled_post(self, content: str, image_url: Optional[str] = None, 
                               schedule_time: Optional[str] = None) -> Dict:
         """Create a scheduled post"""
         posts = self._load_posts()
         
-        # Parse schedule time
-        if schedule_time and schedule_time.lower() == "now":
-            scheduled_datetime = datetime.now()
-        elif schedule_time:
-            try:
-                scheduled_datetime = datetime.fromisoformat(schedule_time)
-            except:
-                scheduled_datetime = datetime.now() + timedelta(hours=1)
-        else:
-            scheduled_datetime = datetime.now() + timedelta(hours=1)
+        # Parse schedule time with enhanced parsing
+        scheduled_datetime = self._parse_schedule_time(schedule_time or "now")
         
         # Create post
         post = {
@@ -256,19 +321,15 @@ class PublishingAgent:
         user_request = state.get('user_request', '').lower()
         generated_content = state.get('generated_content', {})
         
-        # Check if we need to schedule or publish
-        schedule_now = any(phrase in user_request for phrase in [
-            'post now', 'publish now', 'right now', 'post it now', 'post immediately', 'publish it now', 'post it on instagram', 'post on instagram'
-        ])
-        schedule_later = any(phrase in user_request for phrase in ['schedule', 'monday', 'tuesday', 'tomorrow'])
+        # Always schedule posts - let background scheduler handle timing
+        # No immediate posting through agents
         
         result_message = "Content processed"
         
-        # Always try to post if we have content and image
-        if generated_content:
-            schedule_now = True  # Force immediate posting for any content with image
+        # Only post immediately if explicitly requested with "now" keywords
+        # Don't force immediate posting for scheduled content
         
-        if generated_content and (schedule_now or schedule_later):
+        if generated_content:
             content = generated_content.get('content', '')
             image_path = generated_content.get('image_path')
             
@@ -292,24 +353,40 @@ class PublishingAgent:
                     image_url = None
                 
                 if image_url:
-                    # Determine schedule time
-                    schedule_time = "now" if schedule_now else None
-                    if 'monday' in user_request:
-                        next_monday = datetime.now() + timedelta(days=(7 - datetime.now().weekday()))
-                        schedule_time = next_monday.replace(hour=9, minute=0).isoformat()
+                    # Extract schedule time from user request
+                    schedule_time = None
+                    
+                    # Look for time patterns in user request
+                    import re
+                    time_patterns = [
+                        r'at (\d{1,2}\.\d{2}\s*(?:am|pm))',  # at 12.47pm
+                        r'at (\d{1,2}:\d{2}\s*(?:am|pm))',  # at 8:30pm
+                        r'at (\d{1,2}\s*(?:am|pm))',        # at 8pm
+                        r'(\d{1,2}\.\d{2}\s*(?:am|pm))',   # 12.47pm
+                        r'(\d{1,2}:\d{2}\s*(?:am|pm))',   # 8:30pm
+                        r'(\d{1,2}\s*(?:am|pm))',          # 8pm
+                        r'(\d{1,2}:\d{2})',               # 14:30
+                        r'(tomorrow)',
+                        r'(monday|tuesday|wednesday|thursday|friday|saturday|sunday)'
+                    ]
+                    
+                    for pattern in time_patterns:
+                        match = re.search(pattern, user_request, re.IGNORECASE)
+                        if match:
+                            schedule_time = match.group(1)
+                            break
                     
                     # Create scheduled post
+                    print(f"Creating scheduled post with time: {schedule_time}")
                     post = self._create_scheduled_post(content, image_url, schedule_time)
                     
-                    # If scheduling for now, publish immediately
-                    if schedule_now:
-                        publish_result = self._publish_now(post['id'])
-                        if publish_result['success']:
-                            result_message = f"Content published to Instagram successfully! Post ID: {publish_result.get('post_id', 'N/A')}"
-                        else:
-                            result_message = f"Publishing failed: {publish_result.get('error', 'Unknown error')}"
-                    else:
-                        result_message = f"Content scheduled for {post['scheduled_time']}"
+                    # Get scheduled time for display
+                    scheduled_datetime = self._parse_schedule_time(schedule_time or "now")
+                    print(f"Parsed scheduled time: {scheduled_datetime}")
+                    print(f"Current time: {datetime.now()}")
+                    
+                    # NEVER publish immediately - always schedule
+                    result_message = f"Content scheduled for {scheduled_datetime.strftime('%I:%M %p on %B %d, %Y')}. Will be posted automatically by scheduler."
         
         # Add response
         state['agent_responses'].append({

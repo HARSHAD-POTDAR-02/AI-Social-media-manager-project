@@ -1,52 +1,17 @@
 [
   {
-    "id": "05969670-80ad-4317-a216-eaaf2628ae1a",
-    "content": "[Image: A vibrant, high-quality image of the Indian flag with 24 equal horizontal stripes of saffron, white, and green, with a blue rectangle in the canton featuring a white Ashoka Chakra]\n\n\"As I gaze at the Indian flag, I'm reminded of the countless stories of courage and resilience that have shaped our nation. Celebrating our unique traditions and perspectives, while standing together in the face of adversity. Join me in celebrating our nation's spirit of courage, purity, and growth! Share your own stories of Indian pride in the comments below! #BharatMataKiJai #IndianFlag #UnityInDiversity\"",
+    "id": "cb9340d2-ba9d-4236-85af-8a2cf673ff75",
+    "content": "testing the content calender schedule post feature which helps the user to manually schedule a post if needed ",
     "platform": "instagram",
     "media_type": "image",
     "media_urls": [
-      "Here is an image of the Indian flag, suitable for social media posting:  to share!"
+      "https://www.behance.net/search/projects/random%20logos"
     ],
-    "scheduled_time": "2025-09-02T16:06:08.069582",
-    "status": "failed",
-    "created_at": "2025-09-02T16:06:08.069582",
+    "scheduled_time": "2025-09-04T08:11:00.000Z",
+    "status": "scheduled",
+    "created_at": "2025-09-04T13:38:49.186187",
     "metadata": {
-      "generated_by_ai": true
-    },
-    "error_message": "Container creation failed: {\"error\":{\"message\":\"Only photo or video can be accepted as media type.\",\"type\":\"OAuthException\",\"code\":9004,\"error_subcode\":2207052,\"is_transient\":false,\"error_user_title\":\"Media download has failed. The media URI doesn't meet our requirements.\",\"error_user_msg\":\"The media could not be fetched from this URI: Here is an image of the Indian flag, suitable for social media posting:  to share! Please check the limitations section in our development document for more information: https:\\/\\/developers.facebook.com\\/docs\\/instagram-platform\\/instagram-graph-api\\/reference\\/ig-user\\/media#creating\",\"fbtrace_id\":\"AuJOtSa9jp-Re_tQOhI8qrt\"}}"
-  },
-  {
-    "id": "8c37f2a9-22f1-457d-8d9f-222a40b87f08",
-    "content": "'Did you know the Indian Tricolor is a symbol of our nation's rich history & diversity? Let's celebrate our nation's rich heritage & the Tricolor that represents our unity & diversity! Share a photo of yourself with the Tricolor or tell us how it inspires you! #India #NationalPride #Tricolor #IndianFlag #UnityInDiversity'",
-    "platform": "instagram",
-    "media_type": "image",
-    "media_urls": [
-      "https://image.pollinations.ai/prompt/indian%20flag?width=1024&height=1024"
-    ],
-    "scheduled_time": "2025-09-02T19:05:23.126422",
-    "status": "published",
-    "created_at": "2025-09-02T19:05:23.126422",
-    "metadata": {
-      "generated_by_ai": true
-    },
-    "published_at": "2025-09-02T19:05:31.106108",
-    "published_id": "17853064902532835"
-  },
-  {
-    "id": "09ae2632-b625-4835-b98f-e1574224c7e5",
-    "content": "Behind the mask of strength, a silent struggle brews. Shouldering the burden of his pain, one man's story is a reminder that it's okay to not be okay, and it's okay to ask for help.\n\nIf you or someone you know is struggling, text 'HOME' to 741741 or visit [website] for support. Don't let the darkness take over \u2013 reach out to a trusted friend, family member, or mental health professional today. You are not alone, and healing is possible. #MentalHealthMatters #MensMentalHealthAwareness #BreakTheStigma #HealingIsPossible",
-    "platform": "instagram",
-    "media_type": "image",
-    "media_urls": [
-      "https://image.pollinations.ai/prompt/a%20sad?width=1024&height=1024"
-    ],
-    "scheduled_time": "2025-09-02T20:12:48.521983",
-    "status": "published",
-    "created_at": "2025-09-02T20:12:48.521983",
-    "metadata": {
-      "generated_by_ai": true
-    },
-    "published_at": "2025-09-02T20:12:56.612085",
-    "published_id": "17972767310924735"
+      "created_manually": true
+    }
   }
 ]

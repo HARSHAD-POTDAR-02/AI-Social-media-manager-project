@@ -11,6 +11,7 @@ import json
 import os
 import sys
 from datetime import datetime
+from contextlib import asynccontextmanager
 
 # Add parent directory to path to import our modules
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -19,11 +20,24 @@ from graph_setup import SocialMediaManagerGraph
 from dotenv import load_dotenv
 from routes.instagram import router as instagram_router
 from routes.scheduling import router as scheduling_router
+from routes.scheduler import router as scheduler_router
+from services.scheduler_service import scheduler_service
 
 # Load environment variables from the api/.env file
 load_dotenv('.env')
 
-app = FastAPI(title="AI Social Media Manager API", version="1.0.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start the scheduler service
+    print("Starting scheduler service...")
+    scheduler_task = asyncio.create_task(scheduler_service.start_scheduler())
+    yield
+    # Shutdown: Stop the scheduler service
+    print("Stopping scheduler service...")
+    scheduler_service.stop_scheduler()
+    scheduler_task.cancel()
+
+app = FastAPI(title="AI Social Media Manager API", version="1.0.0", lifespan=lifespan)
 
 # CORS middleware
 app.add_middleware(
@@ -37,6 +51,7 @@ app.add_middleware(
 # Include routers
 app.include_router(instagram_router)
 app.include_router(scheduling_router)
+app.include_router(scheduler_router, prefix="/api")
 
 # Initialize the graph
 groq_api_key = os.getenv("GROQ_API_KEY")
@@ -117,6 +132,27 @@ async def chat_endpoint(request: ChatRequest):
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+@app.get("/scheduler/status")
+async def scheduler_status():
+    """Get scheduler service status"""
+    posts = scheduler_service.load_posts()
+    scheduled_posts = [p for p in posts if p.get('status') == 'scheduled']
+    return {
+        "running": scheduler_service.running,
+        "timestamp": datetime.now().isoformat(),
+        "scheduled_posts_count": len(scheduled_posts),
+        "scheduled_posts": scheduled_posts[:3]  # Show first 3 for debugging
+    }
+
+@app.post("/scheduler/check-now")
+async def check_scheduler_now():
+    """Manually trigger scheduler check for testing"""
+    try:
+        scheduler_service.check_and_publish_due_posts()
+        return {"success": True, "message": "Scheduler check completed"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 if __name__ == "__main__":
     import uvicorn
