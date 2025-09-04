@@ -25,7 +25,7 @@ class UpdateScheduledPost(BaseModel):
     scheduled_time: str
     image_url: Optional[str] = None
 
-POSTS_FILE = "scheduled_posts.json"
+POSTS_FILE = os.path.abspath("scheduled_posts.json")
 
 def load_posts() -> List[Dict]:
     """Load scheduled posts from JSON file"""

@@ -1,17 +1,1 @@
-[
-  {
-    "id": "cb9340d2-ba9d-4236-85af-8a2cf673ff75",
-    "content": "testing the content calender schedule post feature which helps the user to manually schedule a post if needed ",
-    "platform": "instagram",
-    "media_type": "image",
-    "media_urls": [
-      "https://www.behance.net/search/projects/random%20logos"
-    ],
-    "scheduled_time": "2025-09-04T08:11:00.000Z",
-    "status": "scheduled",
-    "created_at": "2025-09-04T13:38:49.186187",
-    "metadata": {
-      "created_manually": true
-    }
-  }
-]
+[]

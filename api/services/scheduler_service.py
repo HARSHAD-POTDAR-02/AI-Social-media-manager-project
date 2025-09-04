@@ -23,7 +23,8 @@ except ImportError:
 
 class SchedulerService:
     def __init__(self):
-        self.posts_file = "scheduled_posts.json"
+        # Use absolute path to ensure both manual and AI posts use same file
+        self.posts_file = os.path.abspath("scheduled_posts.json")
         self.publishing_agent = PublishingAgent()
         self.running = False
         

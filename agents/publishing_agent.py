@@ -21,7 +21,7 @@ class PublishingAgent:
     def __init__(self):
         print("Initializing Publishing Agent")
         self.name = "publishing"
-        self.posts_file = "scheduled_posts.json"
+        self.posts_file = os.path.abspath("scheduled_posts.json")
         try:
             self.instagram_service = InstagramService()
         except Exception as e:

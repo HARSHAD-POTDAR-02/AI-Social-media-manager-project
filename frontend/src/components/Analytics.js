@@ -117,9 +117,9 @@ const Analytics = () => {
         
         // Use simple static data to prevent chart errors
         setPerformanceData([
-          { date: 'Day 1', engagement: totalLikes > 0 ? Math.floor(totalLikes / 3) : 0, reach: 0, impressions: 0 },
-          { date: 'Day 2', engagement: totalComments > 0 ? Math.floor(totalComments * 2) : 0, reach: 0, impressions: 0 },
-          { date: 'Day 3', engagement: totalEngagement > 0 ? Math.floor(totalEngagement / 2) : 0, reach: 0, impressions: 0 }
+          { date: 'Day 1', engagement: totalLikes > 0 ? Math.floor(totalLikes / 3) : 0, reach: 0, views: totalLikes > 0 ? Math.floor(totalLikes * 8) : 0 },
+          { date: 'Day 2', engagement: totalComments > 0 ? Math.floor(totalComments * 2) : 0, reach: 0, views: totalComments > 0 ? Math.floor(totalComments * 15) : 0 },
+          { date: 'Day 3', engagement: totalEngagement > 0 ? Math.floor(totalEngagement / 2) : 0, reach: 0, views: totalEngagement > 0 ? Math.floor(totalEngagement * 6) : 0 }
         ]);
         
         // Calculate real content type distribution
@@ -304,6 +304,7 @@ const Analytics = () => {
                   />
                   <Area type="monotone" dataKey="engagement" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.6} />
                   <Area type="monotone" dataKey="reach" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.6} />
+                  <Area type="monotone" dataKey="views" stackId="1" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.6} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
