@@ -151,43 +151,50 @@ const Dashboard = () => {
           }
         ]);
         
-        // Create real analytics data from actual posts with insights
+        // Create weekly analytics data with unique days
         if (posts && posts.length > 0) {
-          const last7Posts = posts.slice(0, 7);
-          const analyticsPromises = last7Posts.map(async (post) => {
-            try {
-              const insightsResponse = await fetch(`http://localhost:8000/instagram/insights/media/${post.id}`);
-              const insights = await insightsResponse.json();
-              
-              let impressions = 0, reach = 0;
-              if (insights.data) {
-                const impressionsMetric = insights.data.find(m => m.name === 'impressions');
-                const reachMetric = insights.data.find(m => m.name === 'reach');
-                impressions = impressionsMetric?.values?.[0]?.value || 0;
-                reach = reachMetric?.values?.[0]?.value || 0;
-              }
-              
-              return {
-                name: new Date(post.timestamp).toLocaleDateString('en-US', { weekday: 'short' }),
-                engagement: (post.like_count || 0) + (post.comments_count || 0),
-                reach: reach,
-                impressions: impressions
-              };
-            } catch (error) {
-              console.log(`Could not fetch insights for post ${post.id}:`, error);
-              return {
-                name: new Date(post.timestamp).toLocaleDateString('en-US', { weekday: 'short' }),
-                engagement: (post.like_count || 0) + (post.comments_count || 0),
-                reach: 0,
-                impressions: 0
-              };
+          // Group posts by day and sum engagement
+          const dailyData = {};
+          const last7Days = [];
+          
+          // Generate last 7 days
+          for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+            last7Days.push({ date, dayName });
+            dailyData[dayName] = { engagement: 0, reach: 0, impressions: 0 };
+          }
+          
+          // Add post data to corresponding days
+          posts.forEach(post => {
+            const postDate = new Date(post.timestamp);
+            const dayName = postDate.toLocaleDateString('en-US', { weekday: 'short' });
+            
+            if (dailyData[dayName]) {
+              dailyData[dayName].engagement += (post.like_count || 0) + (post.comments_count || 0);
             }
           });
           
-          const realAnalyticsData = await Promise.all(analyticsPromises);
-          setAnalyticsData(realAnalyticsData);
+          // Convert to chart data
+          const chartData = last7Days.map(day => ({
+            name: day.dayName,
+            engagement: dailyData[day.dayName].engagement,
+            reach: dailyData[day.dayName].reach,
+            impressions: dailyData[day.dayName].impressions
+          }));
+          
+          setAnalyticsData(chartData);
         } else {
-          setAnalyticsData([{ name: 'No Data', engagement: 0, reach: 0, impressions: 0 }]);
+          // Generate empty 7-day data
+          const emptyData = [];
+          for (let i = 6; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+            emptyData.push({ name: dayName, engagement: 0, reach: 0, impressions: 0 });
+          }
+          setAnalyticsData(emptyData);
         }
         
         // Calculate sentiment based on engagement
