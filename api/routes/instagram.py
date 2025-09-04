@@ -65,12 +65,35 @@ async def get_media_list(limit: int = 25):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/demographics")
+async def get_audience_demographics():
+    """Get real audience demographics"""
+    instagram_service = get_instagram_service()
+    if not instagram_service:
+        raise HTTPException(status_code=500, detail="Instagram service not initialized")
+    
+    try:
+        result = instagram_service.get_audience_demographics()
+        if result.get('success', False):
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result.get('error', 'Failed to fetch demographics'))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/insights/account")
 async def get_account_insights(days: int = 7):
     """Get account-level insights"""
+    instagram_service = get_instagram_service()
+    if not instagram_service:
+        raise HTTPException(status_code=500, detail="Instagram service not initialized")
+    
     try:
-        data = instagram_service.get_account_insights(days=days)
-        return {"success": True, "data": data}
+        result = instagram_service.get_account_insights(days=days)
+        if result.get('success', False):
+            return result
+        else:
+            raise HTTPException(status_code=400, detail=result.get('error', 'Failed to fetch account insights'))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

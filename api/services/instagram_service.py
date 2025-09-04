@@ -232,45 +232,148 @@ class InstagramService:
     
     def get_media_insights(self, media_id: str) -> Dict:
         """Get insights for a specific Instagram media post via Facebook Graph API"""
-        url = f"{self.base_url}/{media_id}/insights"
-        params = {
-            'metric': 'engagement,impressions,reach,saved,video_views,likes,comments,shares',
-            'access_token': self.access_token
-        }
-        
-        response = requests.get(url, params=params)
-        response.encoding = 'utf-8'
-        
-        import json
         try:
-            return json.loads(response.text)
-        except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e}")
-            return {'error': f'JSON decode error: {e}'}
+            url = f"{self.base_url}/{media_id}/insights"
+            params = {
+                'metric': 'engagement,impressions,reach,saved,video_views',
+                'access_token': self.access_token
+            }
+            
+            logger.info(f"Fetching media insights for: {media_id}")
+            response = requests.get(url, params=params, timeout=30)
+            response.encoding = 'utf-8'
+            
+            if response.status_code != 200:
+                logger.error(f"HTTP {response.status_code}: {response.text}")
+                return {
+                    'success': False,
+                    'error': f'HTTP {response.status_code}: {response.text}',
+                    'data': None
+                }
+            
+            data = response.json()
+            
+            if 'error' in data:
+                logger.error(f"Facebook API error: {data['error']}")
+                return {
+                    'success': False,
+                    'error': data['error'].get('message', 'Unknown Facebook API error'),
+                    'data': None
+                }
+            
+            logger.info(f"Successfully fetched media insights for: {media_id}")
+            return {
+                'success': True,
+                'data': data.get('data', []),
+                'error': None
+            }
+            
+        except Exception as e:
+            logger.error(f"Unexpected error getting media insights: {e}")
+            return {
+                'success': False,
+                'error': f'Unexpected error: {str(e)}',
+                'data': None
+            }
+    
+    def get_audience_demographics(self) -> Dict:
+        """Get real audience demographics via Facebook Graph API"""
+        try:
+            url = f"{self.base_url}/{self.instagram_account_id}/insights"
+            params = {
+                'metric': 'audience_gender_age',
+                'period': 'lifetime',
+                'access_token': self.access_token
+            }
+            
+            logger.info(f"Fetching audience demographics from: {url}")
+            response = requests.get(url, params=params, timeout=30)
+            response.encoding = 'utf-8'
+            
+            if response.status_code != 200:
+                logger.error(f"HTTP {response.status_code}: {response.text}")
+                return {
+                    'success': False,
+                    'error': f'HTTP {response.status_code}: {response.text}',
+                    'data': None
+                }
+            
+            data = response.json()
+            
+            if 'error' in data:
+                logger.error(f"Facebook API error: {data['error']}")
+                return {
+                    'success': False,
+                    'error': data['error'].get('message', 'Unknown Facebook API error'),
+                    'data': None
+                }
+            
+            logger.info(f"Successfully fetched audience demographics")
+            return {
+                'success': True,
+                'data': data.get('data', []),
+                'error': None
+            }
+            
+        except Exception as e:
+            logger.error(f"Unexpected error getting audience demographics: {e}")
+            return {
+                'success': False,
+                'error': f'Unexpected error: {str(e)}',
+                'data': None
+            }
     
     def get_account_insights(self, period: str = "day", days: int = 7) -> Dict:
         """Get Instagram account insights via Facebook Graph API"""
-        since = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
-        until = datetime.now().strftime('%Y-%m-%d')
-        
-        url = f"{self.base_url}/{self.instagram_account_id}/insights"
-        params = {
-            'metric': 'impressions,reach,profile_views,website_clicks,follower_count,email_contacts,phone_call_clicks,text_message_clicks,get_directions_clicks',
-            'period': period,
-            'since': since,
-            'until': until,
-            'access_token': self.access_token
-        }
-        
-        response = requests.get(url, params=params)
-        response.encoding = 'utf-8'
-        
-        import json
         try:
-            return json.loads(response.text)
-        except json.JSONDecodeError as e:
-            print(f"JSON decode error: {e}")
-            return {'error': f'JSON decode error: {e}'}
+            since = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+            until = datetime.now().strftime('%Y-%m-%d')
+            
+            url = f"{self.base_url}/{self.instagram_account_id}/insights"
+            params = {
+                'metric': 'impressions,reach,profile_views,website_clicks,follower_count',
+                'period': period,
+                'since': since,
+                'until': until,
+                'access_token': self.access_token
+            }
+            
+            logger.info(f"Fetching account insights from: {url}")
+            response = requests.get(url, params=params, timeout=30)
+            response.encoding = 'utf-8'
+            
+            if response.status_code != 200:
+                logger.error(f"HTTP {response.status_code}: {response.text}")
+                return {
+                    'success': False,
+                    'error': f'HTTP {response.status_code}: {response.text}',
+                    'data': None
+                }
+            
+            data = response.json()
+            
+            if 'error' in data:
+                logger.error(f"Facebook API error: {data['error']}")
+                return {
+                    'success': False,
+                    'error': data['error'].get('message', 'Unknown Facebook API error'),
+                    'data': None
+                }
+            
+            logger.info(f"Successfully fetched account insights")
+            return {
+                'success': True,
+                'data': data.get('data', []),
+                'error': None
+            }
+            
+        except Exception as e:
+            logger.error(f"Unexpected error getting account insights: {e}")
+            return {
+                'success': False,
+                'error': f'Unexpected error: {str(e)}',
+                'data': None
+            }
     
     def get_top_posts(self, limit: int = 10) -> Dict:
         """Get top performing posts based on engagement"""

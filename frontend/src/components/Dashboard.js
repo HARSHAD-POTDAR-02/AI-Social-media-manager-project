@@ -23,6 +23,9 @@ const Dashboard = () => {
   const [topPosts, setTopPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [allPosts, setAllPosts] = useState([]);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [postInsights, setPostInsights] = useState(null);
 
   const [sentimentData, setSentimentData] = useState([
     { name: 'Positive', value: 70, color: '#10B981' },
@@ -33,6 +36,18 @@ const Dashboard = () => {
   const [currentPost, setCurrentPost] = useState(null);
 
   const [nextPost, setNextPost] = useState(null);
+  
+  const fetchPostInsights = async (postId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/instagram/insights/media/${postId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setPostInsights(data);
+      }
+    } catch (error) {
+      console.error('Error fetching post insights:', error);
+    }
+  };
   
   const fetchNextScheduledPost = async () => {
     try {
@@ -116,7 +131,8 @@ const Dashboard = () => {
         
         if (mediaResponse.success && mediaResponse.data && mediaResponse.data.data && mediaResponse.data.data.length > 0) {
           posts = mediaResponse.data.data;
-          const latestPost = posts[0];
+          setAllPosts(posts);
+          const latestPost = selectedPost || posts[0];
 
           
           // Calculate total engagement from all posts
@@ -335,6 +351,49 @@ const Dashboard = () => {
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full">
+      {/* Post Selector */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Analytics View</h3>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setSelectedPost(null)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !selectedPost ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Overall Analytics
+            </button>
+            <select
+              value={selectedPost?.id || ''}
+              onChange={(e) => {
+                const post = allPosts.find(p => p.id === e.target.value);
+                setSelectedPost(post || null);
+                if (post) fetchPostInsights(post.id);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Select a specific post</option>
+              {allPosts.map((post) => (
+                <option key={post.id} value={post.id}>
+                  {(post.caption || 'No caption').substring(0, 50)}...
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {selectedPost && (
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-800">
+              <strong>Selected Post:</strong> {(selectedPost.caption || 'No caption').substring(0, 100)}...
+            </p>
+            <p className="text-xs text-blue-600 mt-1">
+              Posted: {new Date(selectedPost.timestamp).toLocaleDateString()}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => {
