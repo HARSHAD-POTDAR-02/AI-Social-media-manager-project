@@ -15,14 +15,16 @@ import {
   UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { instagramService } from '../services/instagram';
+import { cacheService } from '../services/cache';
 
 const Dashboard = ({ onNavigate }) => {
   const [analyticsData, setAnalyticsData] = useState([]);
   const [accountInfo, setAccountInfo] = useState(null);
   const [topPosts, setTopPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [error, setError] = useState(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const [allPosts, setAllPosts] = useState([]);
   const [selectedPost, setSelectedPost] = useState(null);
   const [postInsights, setPostInsights] = useState(null);
@@ -34,9 +36,274 @@ const Dashboard = ({ onNavigate }) => {
   ]);
 
   const [currentPost, setCurrentPost] = useState(null);
-
   const [nextPost, setNextPost] = useState(null);
-  
+  const [stats, setStats] = useState([]);
+
+  const [contentStrategy] = useState({
+    theme: "Summer Campaign 2025",
+    focus: "User-generated content & community engagement",
+    keyTopics: ["Summer fashion", "Sustainability", "Community stories"],
+    suggestedHashtags: ["#SummerVibes", "#EcoFashion", "#CommunityFirst"],
+    targetAudience: "Fashion-conscious millennials & Gen Z",
+    contentPillars: [
+      { pillar: "Product Showcase", percentage: 40 },
+      { pillar: "Behind the Scenes", percentage: 30 },
+      { pillar: "User Generated", percentage: 20 },
+      { pillar: "Educational", percentage: 10 }
+    ]
+  });
+
+  useEffect(() => {
+    loadDefaultData();
+    
+    const timer = setTimeout(() => {
+      if (!dataLoaded) {
+        fetchInstagramData();
+        fetchNextScheduledPost();
+      }
+    }, 100);
+    
+    const interval = setInterval(fetchNextScheduledPost, 30000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const loadDefaultData = () => {
+    setStats([
+      {
+        name: 'Followers',
+        value: '...',
+        change: 'Loading...',
+        changeType: 'neutral',
+        icon: UserGroupIcon,
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50'
+      },
+      {
+        name: 'Posts',
+        value: '...',
+        change: 'Loading...',
+        changeType: 'neutral',
+        icon: PhotoIcon,
+        color: 'text-green-600',
+        bgColor: 'bg-green-50'
+      },
+      {
+        name: 'Total Likes',
+        value: '...',
+        change: 'Loading...',
+        changeType: 'neutral',
+        icon: HeartIcon,
+        color: 'text-pink-600',
+        bgColor: 'bg-pink-50'
+      },
+      {
+        name: 'Total Comments',
+        value: '...',
+        change: 'Loading...',
+        changeType: 'neutral',
+        icon: ChatBubbleLeftRightIcon,
+        color: 'text-purple-600',
+        bgColor: 'bg-purple-50'
+      }
+    ]);
+    
+    const emptyData = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      emptyData.push({ name: dayName, engagement: 0, reach: 0, impressions: 0, views: 0 });
+    }
+    setAnalyticsData(emptyData);
+  };
+
+  const fetchInstagramData = async () => {
+    try {
+      setLoading(true);
+      setLoadingProgress(10);
+      
+      const cachedData = cacheService.get('dashboard_data');
+      if (cachedData) {
+        processDashboardData(cachedData);
+        setDataLoaded(true);
+        setLoading(false);
+        return;
+      }
+      
+      const response = await fetch('http://localhost:8000/dashboard/data', {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(25000)
+      });
+      
+      setLoadingProgress(50);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      setLoadingProgress(70);
+      
+      if (!result.success) {
+        throw new Error('Dashboard data fetch failed');
+      }
+      
+      cacheService.set('dashboard_data', result, 3 * 60 * 1000);
+      processDashboardData(result);
+      setLoadingProgress(100);
+      setDataLoaded(true);
+      
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      let errorMessage = 'Failed to load Instagram data';
+      
+      if (err.name === 'TimeoutError' || err.message.includes('timeout')) {
+        errorMessage = 'Request timed out after 25 seconds. The Instagram API is slow. Please try again.';
+      } else if (err.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else {
+        errorMessage = `Failed to load data: ${err.message}`;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      setLoadingProgress(0);
+    }
+  };
+
+  const processDashboardData = (result) => {
+    const { account, media, top_posts, sentiment } = result.data;
+    
+    if (account.success) {
+      setAccountInfo(account.data);
+      
+      let totalLikes = 0;
+      let totalComments = 0;
+      let posts = [];
+      
+      if (media.success && media.data?.data?.length > 0) {
+        posts = media.data.data;
+        setAllPosts(posts);
+        const latestPost = posts[0];
+        
+        posts.forEach(post => {
+          totalLikes += post.like_count || 0;
+          totalComments += post.comments_count || 0;
+        });
+        
+        setCurrentPost({
+          platform: 'Instagram',
+          content: latestPost.caption || 'No caption available',
+          image: latestPost.media_url || latestPost.thumbnail_url || null,
+          scheduledFor: new Date(latestPost.timestamp).toLocaleDateString(),
+          status: 'published',
+          engagement: {
+            likes: latestPost.like_count || 0,
+            comments: latestPost.comments_count || 0,
+            shares: 0
+          }
+        });
+      }
+      
+      const followerCount = account.data.followers_count || 0;
+      const mediaCount = account.data.media_count || 0;
+      
+      setStats([
+        {
+          name: 'Followers',
+          value: formatNumber(followerCount),
+          change: followerCount === 0 ? 'New Account' : '+2.3%',
+          changeType: followerCount === 0 ? 'neutral' : 'increase',
+          icon: UserGroupIcon,
+          color: 'text-blue-600',
+          bgColor: 'bg-blue-50'
+        },
+        {
+          name: 'Posts',
+          value: formatNumber(mediaCount),
+          change: mediaCount === 0 ? 'Start Posting' : 'Active',
+          changeType: mediaCount === 0 ? 'neutral' : 'increase',
+          icon: PhotoIcon,
+          color: 'text-green-600',
+          bgColor: 'bg-green-50'
+        },
+        {
+          name: 'Total Likes',
+          value: formatNumber(totalLikes),
+          change: totalLikes > 0 ? 'Engaging' : 'No Likes Yet',
+          changeType: totalLikes > 0 ? 'increase' : 'neutral',
+          icon: HeartIcon,
+          color: 'text-pink-600',
+          bgColor: 'bg-pink-50'
+        },
+        {
+          name: 'Total Comments',
+          value: formatNumber(totalComments),
+          change: totalComments > 0 ? 'Active Discussion' : 'No Comments',
+          changeType: totalComments > 0 ? 'increase' : 'neutral',
+          icon: ChatBubbleLeftRightIcon,
+          color: 'text-purple-600',
+          bgColor: 'bg-purple-50'
+        }
+      ]);
+      
+      if (posts.length > 0) {
+        const last7Days = [];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+          last7Days.push({ date, dayName });
+        }
+        
+        const totalEngagement = totalLikes + totalComments;
+        const baseEngagement = Math.floor(totalEngagement / 7);
+        
+        const chartData = last7Days.map((day, index) => {
+          const variation = Math.sin(index * 0.8) * 0.3 + 1;
+          return {
+            name: day.dayName,
+            engagement: Math.floor(baseEngagement * variation),
+            reach: Math.floor(baseEngagement * variation * 4),
+            impressions: Math.floor(baseEngagement * variation * 7),
+            views: Math.floor(baseEngagement * variation * 6)
+          };
+        });
+        
+        setAnalyticsData(chartData);
+      }
+    }
+    
+    if (top_posts.success) {
+      setTopPosts(top_posts.data);
+    }
+    
+    if (sentiment.success && sentiment.data) {
+      const data = sentiment.data;
+      let positive = Math.max(data.positive_percentage || 0, 0);
+      let neutral = Math.max(data.neutral_percentage || 0, 0);
+      let negative = Math.max(data.negative_percentage || 0, 0);
+      
+      if (data.total_comments === 0 || positive + neutral + negative === 0) {
+        positive = 0;
+        neutral = 100;
+        negative = 0;
+      }
+      
+      setSentimentData([
+        { name: 'Positive', value: positive, color: '#10B981' },
+        { name: 'Neutral', value: neutral, color: '#6B7280' },
+        { name: 'Negative', value: negative, color: '#EF4444' }
+      ]);
+    }
+  };
+
   const fetchPostInsights = async (postId) => {
     try {
       const response = await fetch(`http://localhost:8000/instagram/insights/media/${postId}`);
@@ -56,7 +323,6 @@ const Dashboard = ({ onNavigate }) => {
         const result = await response.json();
         const scheduledPosts = result.data || [];
         
-        // Find the next post to be published
         const now = new Date();
         const futurePosts = scheduledPosts
           .filter(post => post.status === 'scheduled')
@@ -87,251 +353,12 @@ const Dashboard = ({ onNavigate }) => {
     }
   };
 
-  const [contentStrategy] = useState({
-    theme: "Summer Campaign 2025",
-    focus: "User-generated content & community engagement",
-    keyTopics: ["Summer fashion", "Sustainability", "Community stories"],
-    suggestedHashtags: ["#SummerVibes", "#EcoFashion", "#CommunityFirst"],
-    targetAudience: "Fashion-conscious millennials & Gen Z",
-    contentPillars: [
-      { pillar: "Product Showcase", percentage: 40 },
-      { pillar: "Behind the Scenes", percentage: 30 },
-      { pillar: "User Generated", percentage: 20 },
-      { pillar: "Educational", percentage: 10 }
-    ]
-  });
-
-  const [stats, setStats] = useState([]);
-
-  useEffect(() => {
-    fetchInstagramData();
-    fetchNextScheduledPost();
-    
-    // Refresh next scheduled post every 30 seconds
-    const interval = setInterval(fetchNextScheduledPost, 30000);
-    
-    return () => clearInterval(interval);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const fetchInstagramData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch account info
-      const accountResponse = await instagramService.getAccountInfo();
-      if (accountResponse.success) {
-        setAccountInfo(accountResponse.data);
-        
-        // Fetch recent posts first to get engagement data
-        const mediaResponse = await instagramService.getMediaList(10);
-
-        let totalLikes = 0;
-        let totalComments = 0;
-        let posts = [];
-        
-        if (mediaResponse.success && mediaResponse.data && mediaResponse.data.data && mediaResponse.data.data.length > 0) {
-          posts = mediaResponse.data.data;
-          setAllPosts(posts);
-          const latestPost = selectedPost || posts[0];
-
-          
-          // Calculate total engagement from all posts
-          posts.forEach(post => {
-            totalLikes += post.like_count || 0;
-            totalComments += post.comments_count || 0;
-          });
-          
-
-          
-          const postData = {
-            platform: 'Instagram',
-            content: latestPost.caption || 'No caption available',
-            image: latestPost.media_url || latestPost.thumbnail_url || null,
-            scheduledFor: new Date(latestPost.timestamp).toLocaleDateString(),
-            status: 'published',
-            engagement: {
-              likes: latestPost.like_count || 0,
-              comments: latestPost.comments_count || 0,
-              shares: 0
-            }
-          };
-          
-
-          setCurrentPost(postData);
-        } else {
-          setCurrentPost(null);
-        }
-        
-        // Update stats with real data including engagement
-        const followerCount = accountResponse.data.followers_count || 0;
-        const mediaCount = accountResponse.data.media_count || 0;
-        const totalEngagement = totalLikes + totalComments;
-        
-        setStats([
-          {
-            name: 'Followers',
-            value: formatNumber(followerCount),
-            change: followerCount === 0 ? 'New Account' : '+2.3%',
-            changeType: followerCount === 0 ? 'neutral' : 'increase',
-            icon: UserGroupIcon,
-            color: 'text-blue-600',
-            bgColor: 'bg-blue-50'
-          },
-          {
-            name: 'Posts',
-            value: formatNumber(mediaCount),
-            change: mediaCount === 0 ? 'Start Posting' : 'Active',
-            changeType: mediaCount === 0 ? 'neutral' : 'increase',
-            icon: PhotoIcon,
-            color: 'text-green-600',
-            bgColor: 'bg-green-50'
-          },
-          {
-            name: 'Total Likes',
-            value: formatNumber(totalLikes),
-            change: totalLikes > 0 ? 'Engaging' : 'No Likes Yet',
-            changeType: totalLikes > 0 ? 'increase' : 'neutral',
-            icon: HeartIcon,
-            color: 'text-pink-600',
-            bgColor: 'bg-pink-50'
-          },
-          {
-            name: 'Total Comments',
-            value: formatNumber(totalComments),
-            change: totalComments > 0 ? 'Active Discussion' : 'No Comments',
-            changeType: totalComments > 0 ? 'increase' : 'neutral',
-            icon: ChatBubbleLeftRightIcon,
-            color: 'text-purple-600',
-            bgColor: 'bg-purple-50'
-          }
-        ]);
-        
-        // Create weekly analytics data with unique days
-        if (posts && posts.length > 0) {
-          // Group posts by day and sum engagement
-          const dailyData = {};
-          const last7Days = [];
-          
-          // Generate last 7 days
-          for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-            last7Days.push({ date, dayName });
-            dailyData[dayName] = { engagement: 0, reach: 0, impressions: 0, views: 0 };
-          }
-          
-          // Calculate total engagement and distribute smoothly
-          const totalEngagement = totalLikes + totalComments;
-          const baseEngagement = Math.floor(totalEngagement / 7);
-          const baseViews = Math.floor(totalEngagement * 6 / 7);
-          
-          // Convert to chart data with smooth distribution
-          const chartData = last7Days.map((day, index) => {
-            const variation = Math.sin(index * 0.8) * 0.3 + 1; // Smooth variation
-            return {
-              name: day.dayName,
-              engagement: Math.floor(baseEngagement * variation),
-              reach: Math.floor(baseEngagement * variation * 4),
-              impressions: Math.floor(baseEngagement * variation * 7),
-              views: Math.floor(baseViews * variation)
-            };
-          });
-          
-          setAnalyticsData(chartData);
-        } else {
-          // Generate empty 7-day data
-          const emptyData = [];
-          for (let i = 6; i >= 0; i--) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-            emptyData.push({ name: dayName, engagement: 0, reach: 0, impressions: 0, views: 0 });
-          }
-          setAnalyticsData(emptyData);
-        }
-        
-        // Fetch real sentiment analysis
-        try {
-          const sentimentResponse = await fetch('http://localhost:8000/instagram/sentiment-analysis');
-          if (sentimentResponse.ok) {
-            const sentimentResult = await sentimentResponse.json();
-            if (sentimentResult.success && sentimentResult.data) {
-              const data = sentimentResult.data;
-              console.log('Sentiment data received:', data);
-              
-              // Ensure values are valid numbers and sum to 100
-              let positive = Math.max(data.positive_percentage || 0, 0);
-              let neutral = Math.max(data.neutral_percentage || 0, 0);
-              let negative = Math.max(data.negative_percentage || 0, 0);
-              
-              // If no comments, show 100% neutral
-              if (data.total_comments === 0) {
-                positive = 0;
-                neutral = 100;
-                negative = 0;
-              } else if (positive + neutral + negative === 0) {
-                // If comments exist but no sentiment detected, assume neutral
-                positive = 0;
-                neutral = 100;
-                negative = 0;
-              }
-              
-              setSentimentData([
-                { name: 'Positive', value: positive, color: '#10B981' },
-                { name: 'Neutral', value: neutral, color: '#6B7280' },
-                { name: 'Negative', value: negative, color: '#EF4444' }
-              ]);
-            } else {
-              throw new Error('Invalid sentiment data');
-            }
-          } else {
-            throw new Error('Failed to fetch sentiment');
-          }
-        } catch (error) {
-          console.log('Using fallback sentiment data:', error);
-          // Always provide valid fallback data
-          setSentimentData([
-            { name: 'Positive', value: 70, color: '#10B981' },
-            { name: 'Neutral', value: 25, color: '#6B7280' },
-            { name: 'Negative', value: 5, color: '#EF4444' }
-          ]);
-        }
-      }
-      
-      // Fetch top posts
-      const topPostsResponse = await instagramService.getTopPosts(5);
-      if (topPostsResponse.success) {
-        setTopPosts(topPostsResponse.data);
-      }
-
-      
-    } catch (err) {
-      console.error('Error fetching Instagram data:', err);
-      console.error('Error details:', err.response?.data);
-      setError(`Failed to load Instagram data: ${err.response?.data?.detail || err.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const formatNumber = (num) => {
     if (!num || num === 0) return '0';
     if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
     if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
-
-  if (loading) {
-    return (
-      <div className="p-6 flex items-center justify-center h-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Instagram data...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -350,51 +377,24 @@ const Dashboard = ({ onNavigate }) => {
   }
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full">
-      {/* Post Selector */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">Analytics View</h3>
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={() => setSelectedPost(null)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                !selectedPost ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Overall Analytics
-            </button>
-            <select
-              value={selectedPost?.id || ''}
-              onChange={(e) => {
-                const post = allPosts.find(p => p.id === e.target.value);
-                setSelectedPost(post || null);
-                if (post) fetchPostInsights(post.id);
-              }}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Select a specific post</option>
-              {allPosts.map((post) => (
-                <option key={post.id} value={post.id}>
-                  {(post.caption || 'No caption').substring(0, 50)}...
-                </option>
-              ))}
-            </select>
+    <div className="p-6 space-y-6 overflow-y-auto h-full relative">
+      {loading && (
+        <div className="fixed top-4 right-4 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4 max-w-sm">
+          <div className="flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Loading data...</p>
+              <div className="w-32 bg-gray-200 rounded-full h-1 mt-1">
+                <div 
+                  className="bg-blue-600 h-1 rounded-full transition-all duration-300"
+                  style={{ width: `${loadingProgress}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
         </div>
-        {selectedPost && (
-          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-            <p className="text-sm text-blue-800">
-              <strong>Selected Post:</strong> {(selectedPost.caption || 'No caption').substring(0, 100)}...
-            </p>
-            <p className="text-xs text-blue-600 mt-1">
-              Posted: {new Date(selectedPost.timestamp).toLocaleDateString()}
-            </p>
-          </div>
-        )}
-      </div>
+      )}
 
-      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon;
@@ -418,7 +418,6 @@ const Dashboard = ({ onNavigate }) => {
                     }`}>
                       {stat.change}
                     </span>
-                    <span className="text-sm text-gray-500 ml-1">vs last week</span>
                   </div>
                 </div>
                 <div className={`p-3 rounded-lg ${stat.bgColor}`}>
@@ -431,14 +430,9 @@ const Dashboard = ({ onNavigate }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Analytics Chart */}
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-semibold text-gray-900">Weekly Performance</h3>
-            <div className="flex space-x-2">
-              <button className="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg">7 days</button>
-              <button className="px-3 py-1 text-sm text-gray-500 hover:bg-gray-50 rounded-lg">30 days</button>
-            </div>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
@@ -446,14 +440,7 @@ const Dashboard = ({ onNavigate }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
                 <YAxis stroke="#6b7280" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                />
+                <Tooltip />
                 <Line type="monotone" dataKey="engagement" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }} />
                 <Line type="monotone" dataKey="reach" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }} />
                 <Line type="monotone" dataKey="impressions" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }} />
@@ -463,7 +450,6 @@ const Dashboard = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Sentiment Analysis */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-6">Sentiment Analysis</h3>
           <div className="h-48">
@@ -490,7 +476,7 @@ const Dashboard = ({ onNavigate }) => {
             {sentimentData.map((item) => (
               <div key={item.name} className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <div className={`w-3 h-3 rounded-full`} style={{ backgroundColor: item.color }}></div>
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
                   <span className="text-sm text-gray-600">{item.name}</span>
                 </div>
                 <span className="text-sm font-medium text-gray-900">{item.value}%</span>
@@ -501,36 +487,22 @@ const Dashboard = ({ onNavigate }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Current Post */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Latest Post</h3>
-            {currentPost && (
-              <div className="flex items-center space-x-2">
-                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
-                  {currentPost.status}
-                </span>
-                <span className="text-sm text-gray-500">{currentPost.platform}</span>
-              </div>
-            )}
           </div>
           
           {currentPost ? (
             <div className="space-y-4">
               {currentPost.image && (
-                <div className="relative">
-                  <img 
-                    src={currentPost.image} 
-                    alt="Post content" 
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <div className="absolute top-3 left-3 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-                    {currentPost.platform}
-                  </div>
-                </div>
+                <img 
+                  src={currentPost.image} 
+                  alt="Post content" 
+                  className="w-full h-48 object-cover rounded-lg"
+                />
               )}
               
-              <p className="text-gray-700 text-sm leading-relaxed">{currentPost.content || 'No caption available'}</p>
+              <p className="text-gray-700 text-sm leading-relaxed">{currentPost.content}</p>
               
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -542,14 +514,6 @@ const Dashboard = ({ onNavigate }) => {
                     <ChatBubbleLeftRightIcon className="w-4 h-4" />
                     <span>{currentPost.engagement?.comments || 0}</span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <ShareIcon className="w-4 h-4" />
-                    <span>{currentPost.engagement?.shares || 0}</span>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-1 text-sm text-gray-500">
-                  <ClockIcon className="w-4 h-4" />
-                  <span>{currentPost.scheduledFor}</span>
                 </div>
               </div>
             </div>
@@ -557,46 +521,17 @@ const Dashboard = ({ onNavigate }) => {
             <div className="text-center py-8 text-gray-500">
               <PhotoIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-sm">No posts available</p>
-              <p className="text-xs text-gray-400 mt-1">Create your first Instagram post to see it here</p>
             </div>
           )}
         </div>
 
-        {/* Next Scheduled Post */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Next Scheduled</h3>
-            {nextPost && (
-              <div className="flex items-center space-x-2">
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded-full">
-                  {nextPost.status}
-                </span>
-                <span className="text-sm text-gray-500">{nextPost.platform}</span>
-              </div>
-            )}
           </div>
           
           {nextPost ? (
             <div className="space-y-4">
-              {nextPost.image ? (
-                <div className="relative">
-                  <img 
-                    src={nextPost.image} 
-                    alt="Scheduled post" 
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <div className="absolute top-3 left-3 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
-                    {nextPost.platform}
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-gray-100 rounded-lg p-4 border-2 border-dashed border-gray-300">
-                  <div className="flex items-center justify-center h-32 text-gray-400">
-                    <PhotoIcon className="w-12 h-12" />
-                  </div>
-                </div>
-              )}
-              
               <p className="text-gray-700 text-sm leading-relaxed">{nextPost.content}</p>
               
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">
@@ -613,7 +548,6 @@ const Dashboard = ({ onNavigate }) => {
             <div className="text-center py-8 text-gray-500">
               <CalendarIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-sm">No scheduled posts</p>
-              <p className="text-xs text-gray-400 mt-1">Schedule your next post to see it here</p>
             </div>
           )}
         </div>
@@ -632,7 +566,6 @@ const Dashboard = ({ onNavigate }) => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Strategy Overview */}
           <div className="lg:col-span-2 space-y-4">
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-100">
               <h4 className="font-semibold text-gray-900 mb-2">{contentStrategy.theme}</h4>
@@ -669,7 +602,6 @@ const Dashboard = ({ onNavigate }) => {
             </div>
           </div>
 
-          {/* Content Pillars */}
           <div>
             <h5 className="font-medium text-gray-900 mb-4">Content Pillars</h5>
             <div className="space-y-3">

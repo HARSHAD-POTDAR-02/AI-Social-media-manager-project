@@ -6,17 +6,25 @@ echo Starting FastAPI Backend...
 start "FastAPI Backend" cmd /k "cd api && python main.py"
 
 echo.
-echo Waiting for backend to start...
-ping 127.0.0.1 -n 4 > nul
+echo Waiting for backend to be ready...
+:wait_backend
+curl -s http://localhost:8000/health > nul 2>&1
+if %errorlevel% neq 0 (
+    timeout /t 1 /nobreak > nul
+    goto wait_backend
+)
+echo Backend is ready!
 
 echo.
 echo Starting React Frontend...
 start "React Frontend" cmd /k "cd frontend && npm start"
 
 echo.
-echo Development servers are starting...
+echo Development servers are ready!
 echo Backend: http://localhost:8000
 echo Frontend: http://localhost:3000
+echo API Docs: http://localhost:8000/docs
+echo Performance: http://localhost:8000/performance/health
 echo.
 echo Press any key to exit...
 pause > nul

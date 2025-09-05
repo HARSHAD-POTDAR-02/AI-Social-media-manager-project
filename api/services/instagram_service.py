@@ -15,6 +15,10 @@ class InstagramService:
         self.facebook_page_id = os.getenv('FACEBOOK_PAGE_ID')
         self.base_url = "https://graph.facebook.com/v19.0"
         
+        # Simple cache with 5-minute expiry
+        self._cache = {}
+        self._cache_expiry = 300  # 5 minutes
+        
         # Validate required credentials
         if not self.access_token:
             logger.error("INSTAGRAM_ACCESS_TOKEN not found in environment variables")
@@ -24,6 +28,25 @@ class InstagramService:
             raise ValueError("Instagram page ID is required")
         
         logger.info(f"Instagram service initialized with account ID: {self.instagram_account_id}")
+    
+    def _get_cache_key(self, method_name, *args):
+        """Generate cache key for method and arguments"""
+        return f"{method_name}_{hash(str(args))}"
+    
+    def _get_cached_result(self, cache_key):
+        """Get cached result if not expired"""
+        if cache_key in self._cache:
+            result, timestamp = self._cache[cache_key]
+            if datetime.now().timestamp() - timestamp < self._cache_expiry:
+                logger.info(f"Using cached result for {cache_key}")
+                return result
+            else:
+                del self._cache[cache_key]
+        return None
+    
+    def _set_cached_result(self, cache_key, result):
+        """Cache the result with timestamp"""
+        self._cache[cache_key] = (result, datetime.now().timestamp())
     
     def validate_connection(self) -> Dict:
         """Validate Instagram API connection and credentials"""
@@ -52,6 +75,11 @@ class InstagramService:
         
     def get_account_info(self) -> Dict:
         """Get Instagram business account information via Facebook Graph API"""
+        cache_key = self._get_cache_key('get_account_info')
+        cached_result = self._get_cached_result(cache_key)
+        if cached_result:
+            return cached_result
+            
         try:
             url = f"{self.base_url}/{self.instagram_account_id}"
             params = {
@@ -60,7 +88,7 @@ class InstagramService:
             }
             
             logger.info(f"Fetching account info from: {url}")
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=10)
             response.encoding = 'utf-8'
             
             # Check HTTP status
@@ -99,11 +127,13 @@ class InstagramService:
                 }
                 
                 logger.info(f"Successfully fetched account info for: {mapped_data.get('username', 'Unknown')}")
-                return {
+                result = {
                     'success': True,
                     'data': mapped_data,
                     'error': None
                 }
+                self._set_cached_result(cache_key, result)
+                return result
                 
             except ValueError as e:
                 logger.error(f"JSON decode error: {e}")
@@ -137,6 +167,11 @@ class InstagramService:
     
     def get_media_list(self, limit: int = 25) -> Dict:
         """Get recent Instagram media posts via Facebook Graph API"""
+        cache_key = self._get_cache_key('get_media_list', limit)
+        cached_result = self._get_cached_result(cache_key)
+        if cached_result:
+            return cached_result
+            
         try:
             url = f"{self.base_url}/{self.instagram_account_id}/media"
             params = {
@@ -146,7 +181,7 @@ class InstagramService:
             }
             
             logger.info(f"Fetching media list from: {url}")
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=10)
             response.encoding = 'utf-8'
             
             # Check HTTP status
@@ -191,7 +226,7 @@ class InstagramService:
                         media_list.append(mapped_item)
                 
                 logger.info(f"Successfully fetched {len(media_list)} media items")
-                return {
+                result = {
                     'success': True,
                     'data': {
                         'data': media_list,
@@ -199,6 +234,8 @@ class InstagramService:
                     },
                     'error': None
                 }
+                self._set_cached_result(cache_key, result)
+                return result
                 
             except ValueError as e:
                 logger.error(f"JSON decode error: {e}")
@@ -240,7 +277,7 @@ class InstagramService:
             }
             
             logger.info(f"Fetching media insights for: {media_id}")
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=10)
             response.encoding = 'utf-8'
             
             if response.status_code != 200:
@@ -287,7 +324,7 @@ class InstagramService:
             }
             
             logger.info(f"Fetching audience demographics from: {url}")
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=10)
             response.encoding = 'utf-8'
             
             if response.status_code != 200:
@@ -339,7 +376,7 @@ class InstagramService:
             }
             
             logger.info(f"Fetching account insights from: {url}")
-            response = requests.get(url, params=params, timeout=30)
+            response = requests.get(url, params=params, timeout=10)
             response.encoding = 'utf-8'
             
             if response.status_code != 200:
