@@ -79,7 +79,7 @@ function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveTab} />;
       case 'agents':
         return <AgentChat />;
       case 'calendar':
@@ -89,7 +89,7 @@ function App() {
       case 'community':
         return <Community />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigate={setActiveTab} />;
     }
   };
 
