@@ -102,6 +102,9 @@ async def chat_endpoint(request: ChatRequest):
                 context_data=request.context_data or {}
             )
             print(f"Graph result: {result}")
+            
+            # Analytics agent now uses cached data, no continuous updates needed
+                
         except Exception as graph_error:
             print(f"Graph execution error: {graph_error}")
             # Return a simple response instead of failing
@@ -155,6 +158,15 @@ async def check_scheduler_now():
     try:
         scheduler_service.check_and_publish_due_posts()
         return {"success": True, "message": "Scheduler check completed"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.get("/analytics/status")
+async def analytics_status():
+    """Get analytics agent data status"""
+    try:
+        status = graph.analytics_agent.get_current_data_summary()
+        return {"success": True, "data": status}
     except Exception as e:
         return {"success": False, "error": str(e)}
 

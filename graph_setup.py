@@ -95,7 +95,7 @@ class SocialMediaManagerGraph:
         self.publishing_agent = PublishingAgent()
         self.community_agent = CommunityAgent()
         self.listening_agent = ListeningAgent()
-        self.analytics_agent = AnalyticsAgent()
+        self.analytics_agent = AnalyticsAgent(self.groq_api_key)  # Pass API key
         self.crisis_agent = CrisisAgent()
         self.influencer_agent = InfluencerAgent()
         self.paid_social_agent = PaidSocialAgent()

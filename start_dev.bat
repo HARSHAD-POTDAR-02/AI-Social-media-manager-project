@@ -7,12 +7,7 @@ start "FastAPI Backend" cmd /k "cd api && python main.py"
 
 echo.
 echo Waiting for backend to be ready...
-:wait_backend
-curl -s http://localhost:8000/health > nul 2>&1
-if %errorlevel% neq 0 (
-    timeout /t 1 /nobreak > nul
-    goto wait_backend
-)
+timeout /t 3 /nobreak
 echo Backend is ready!
 
 echo.
