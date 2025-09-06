@@ -225,12 +225,15 @@ Current data context will be provided with each conversation."""
         if 'agent_responses' not in state:
             state['agent_responses'] = []
         
-        state['agent_responses'].append({
-            'agent': self.name,
-            'action': action,
-            'result': result,
-            'timestamp': datetime.now().isoformat()
-        })
+        # Check if response already exists to prevent duplicates
+        existing = [r for r in state['agent_responses'] if r.get('agent') == self.name and r.get('action') == action]
+        if not existing:
+            state['agent_responses'].append({
+                'agent': self.name,
+                'action': action,
+                'result': result,
+                'timestamp': datetime.now().isoformat()
+            })
 
     def get_current_data_summary(self) -> Dict[str, Any]:
         """Get current data summary for external use"""

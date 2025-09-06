@@ -56,7 +56,7 @@ class GraphState(TypedDict):
     human_feedback: Optional[str]
     
     # Results and responses
-    agent_responses: Annotated[List[Dict[str, Any]], operator.add]
+    agent_responses: List[Dict[str, Any]]
     final_response: Optional[str]
     
     # Error handling
