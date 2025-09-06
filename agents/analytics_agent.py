@@ -42,6 +42,7 @@ class AnalyticsAgent:
         
         # Use cached data instead of continuous updates
         self.cached_data = {}
+        self.data_loaded = False
         
         # System prompt for the LLM
         self.system_prompt = """You are an expert Instagram analytics specialist with access to real-time data. 
@@ -70,8 +71,13 @@ When responding:
 Current data context will be provided with each conversation."""
 
     def get_cached_data(self):
-        """Get data from cache (same as analytics.js calls)"""
+        """Get data from cache - only fetch once per session"""
+        if self.data_loaded and self.cached_data:
+            print("📋 Using cached analytics data")
+            return self.cached_data
+            
         try:
+            print("🔄 Loading analytics data for first time...")
             # Fetch data once when needed, not continuously
             account_data = self.instagram_service.get_account_info()
             media_data = self.instagram_service.get_media_list(limit=30)
@@ -87,6 +93,8 @@ Current data context will be provided with each conversation."""
                     media_data.get('data', {}).get('data', []) if media_data.get('success') else []
                 )
             }
+            self.data_loaded = True
+            print("✅ Analytics data cached successfully")
             return self.cached_data
         except Exception as e:
             print(f"❌ Failed to get cached data: {e}")
@@ -238,6 +246,13 @@ Current data context will be provided with each conversation."""
     def get_current_data_summary(self) -> Dict[str, Any]:
         """Get current data summary for external use"""
         return {
+            'data_loaded': self.data_loaded,
             'data_available': bool(self.cached_data),
             'analytics_summary': self.cached_data.get('analytics', {})
         }
+    
+    def refresh_cache(self):
+        """Force refresh of cached data"""
+        self.data_loaded = False
+        self.cached_data = {}
+        return self.get_cached_data()

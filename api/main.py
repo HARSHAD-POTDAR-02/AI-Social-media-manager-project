@@ -170,6 +170,15 @@ async def analytics_status():
     except Exception as e:
         return {"success": False, "error": str(e)}
 
+@app.post("/analytics/refresh")
+async def refresh_analytics_cache():
+    """Refresh analytics cache with fresh data"""
+    try:
+        graph.analytics_agent.refresh_cache()
+        return {"success": True, "message": "Analytics cache refreshed"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
