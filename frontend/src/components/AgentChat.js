@@ -14,21 +14,13 @@ const AgentChat = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState('all');
+
   const [currentWorkflow, setCurrentWorkflow] = useState(null);
   const [agentQueue, setAgentQueue] = useState([]);
   const [completedAgents, setCompletedAgents] = useState([]);
   const messagesEndRef = useRef(null);
 
-  const agents = [
-    { id: 'all', name: 'All Agents', description: 'Let AI decide the best agent', color: 'bg-gray-500', icon: '🤖' },
-    { id: 'strategy', name: 'Strategy Agent', description: 'Content planning & trends', color: 'bg-blue-500', icon: '🎯' },
-    { id: 'content', name: 'Content Agent', description: 'Content creation & writing', color: 'bg-green-500', icon: '✍️' },
-    { id: 'analytics', name: 'Analytics Agent', description: 'Performance & insights', color: 'bg-purple-500', icon: '📊' },
-    { id: 'community', name: 'Community Agent', description: 'Engagement & responses', color: 'bg-pink-500', icon: '💬' },
-    { id: 'publishing', name: 'Publishing Agent', description: 'Scheduling & posting', color: 'bg-orange-500', icon: '📱' },
-    { id: 'crisis', name: 'Crisis Agent', description: 'Crisis management', color: 'bg-red-500', icon: '🚨' }
-  ];
+
 
   const quickPrompts = [
     "Create a post about our new product launch",
@@ -55,7 +47,7 @@ const AgentChat = () => {
       type: 'user',
       content: inputMessage,
       timestamp: new Date(),
-      agent: selectedAgent
+      agent: 'all'
     };
 
     setMessages(prev => [...prev, userMessage]);
@@ -74,7 +66,7 @@ const AgentChat = () => {
         body: JSON.stringify({
           message: inputMessage,
           session_id: `web-${Date.now()}`,
-          context_data: selectedAgent !== 'all' ? { preferred_agent: selectedAgent } : {}
+          context_data: {}
         }),
       });
 
@@ -164,14 +156,14 @@ const AgentChat = () => {
 
   const MessageBubble = ({ message }) => {
     const isUser = message.type === 'user';
-    const selectedAgentInfo = agents.find(a => a.id === message.agent);
+
     
     return (
       <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-6`}>
         <div className={`flex items-start space-x-3 max-w-4xl ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
           <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
             isUser 
-              ? selectedAgentInfo?.color || 'bg-blue-500'
+              ? 'bg-blue-500'
               : 'bg-gradient-to-br from-gray-600 to-gray-800'
           }`}>
             {isUser ? (
@@ -188,11 +180,7 @@ const AgentChat = () => {
               ? 'bg-red-50 text-red-800 border border-red-200'
               : 'bg-white text-gray-800 border border-gray-200 shadow-sm'
           }`}>
-            {isUser && selectedAgent !== 'all' && (
-              <div className="text-xs opacity-80 mb-1">
-                → {selectedAgentInfo?.name}
-              </div>
-            )}
+
             
             <div className="whitespace-pre-wrap">{message.content}</div>
             
@@ -241,30 +229,18 @@ const AgentChat = () => {
 
   return (
     <div className="flex h-full">
-      {/* Agent Selection Sidebar */}
+      {/* Quick Prompts Sidebar */}
       <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
         <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900 mb-3">Select Agent</h3>
-          <div className="space-y-2">
-            {agents.map((agent) => (
-              <button
-                key={agent.id}
-                onClick={() => setSelectedAgent(agent.id)}
-                className={`w-full flex items-center space-x-3 p-3 rounded-lg text-left transition-all ${
-                  selectedAgent === agent.id
-                    ? 'bg-blue-50 border border-blue-200 text-blue-700'
-                    : 'hover:bg-gray-50 text-gray-700'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-lg ${agent.color} flex items-center justify-center text-white text-sm`}>
-                  {agent.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm">{agent.name}</div>
-                  <div className="text-xs text-gray-500 truncate">{agent.description}</div>
-                </div>
-              </button>
-            ))}
+          <h3 className="font-semibold text-gray-900 mb-3">AI Agent</h3>
+          <div className="flex items-center space-x-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+            <div className="w-8 h-8 rounded-lg bg-gray-500 flex items-center justify-center text-white text-sm">
+              🤖
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-sm text-blue-700">All Agents</div>
+              <div className="text-xs text-blue-600">Let AI decide the best agent</div>
+            </div>
           </div>
         </div>
 
@@ -290,16 +266,12 @@ const AgentChat = () => {
         {/* Chat Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center space-x-3">
-            <div className={`w-10 h-10 rounded-lg ${agents.find(a => a.id === selectedAgent)?.color || 'bg-gray-500'} flex items-center justify-center text-white`}>
-              {agents.find(a => a.id === selectedAgent)?.icon || '🤖'}
+            <div className="w-10 h-10 rounded-lg bg-gray-500 flex items-center justify-center text-white">
+              🤖
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900">
-                {agents.find(a => a.id === selectedAgent)?.name || 'AI Agent'}
-              </h3>
-              <p className="text-sm text-gray-500">
-                {agents.find(a => a.id === selectedAgent)?.description || 'AI Assistant'}
-              </p>
+              <h3 className="font-semibold text-gray-900">All Agents</h3>
+              <p className="text-sm text-gray-500">Let AI decide the best agent</p>
             </div>
           </div>
         </div>
@@ -316,7 +288,6 @@ const AgentChat = () => {
                 Ready to help with your social media!
               </h3>
               <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                Choose an agent above or let me decide the best one for your task. 
                 I can help with strategy, content creation, analytics, and more.
               </p>
             </div>
@@ -366,7 +337,7 @@ const AgentChat = () => {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={`Ask ${agents.find(a => a.id === selectedAgent)?.name || 'AI Agent'} anything...`}
+                placeholder="Ask AI Agent anything..."
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all"
                 rows="1"
                 style={{ minHeight: '48px', maxHeight: '120px' }}

@@ -115,7 +115,7 @@ const Community = () => {
   });
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <div className="p-6 h-full flex flex-col overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
