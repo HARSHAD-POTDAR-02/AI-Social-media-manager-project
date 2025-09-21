@@ -188,7 +188,11 @@ const Dashboard = ({ onNavigate }) => {
       let posts = [];
       
       if (media.success && media.data?.data?.length > 0) {
-        posts = media.data.data;
+        posts = media.data.data.map(p => {
+          // Normalize timestamp field to be flexible with backend names
+          const timestamp = p.timestamp || p.created_time || p.published_at || p.date || null;
+          return { ...p, timestamp };
+        });
         setAllPosts(posts);
         const latestPost = posts[0];
         
@@ -286,7 +290,7 @@ const Dashboard = ({ onNavigate }) => {
       const response = await fetch(`http://localhost:8000/instagram/insights/media/${postId}`);
       if (response.ok) {
         const data = await response.json();
-        setPostInsights(data);
+        return data;
       }
     } catch (error) {
       console.error('Error fetching post insights:', error);
@@ -295,16 +299,175 @@ const Dashboard = ({ onNavigate }) => {
   
   const fetchWeeklyInsights = async () => {
     try {
-      const response = await fetch('http://localhost:8000/instagram/insights/weekly');
+      // Prefer server-provided weekly insights when available
+      const response = await fetch('http://localhost:8000/instagram/insights/performance');
       if (response.ok) {
         const result = await response.json();
-        if (result.success && result.data) {
-          setAnalyticsData(result.data);
+        if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+          const normalized = normalizePerformanceData(result.data);
+          setAnalyticsData(ensureSevenDays(normalized));
+          return;
         }
       }
+
+      // Fallback: compute weekly per-day engagement and views from local media list
+  const aggregated = await computeWeeklyFromPosts(allPosts);
+  setAnalyticsData(ensureSevenDays(aggregated));
     } catch (error) {
       console.error('Error fetching weekly insights:', error);
     }
+  };
+
+  // Normalize different backend shapes to chart-friendly array
+  const normalizePerformanceData = (arr) => {
+    // arr: array of objects possibly shaped as { name, date, end_time, engagement, reach, impressions, views }
+    return arr.map(item => {
+      let name = item.name || item.day || item.label || null;
+      // handle date fields
+      if (!name) {
+        const dateStr = item.date || item.end_time || item.timestamp || item.time || null;
+        if (dateStr) {
+          const d = new Date(dateStr);
+          if (!isNaN(d)) name = d.toLocaleDateString('en-US', { weekday: 'short' });
+        }
+      }
+      if (!name) name = item.label || '';
+
+      const engagement = Number(item.engagement ?? item.total_engagement ?? item.engagements ?? 0) || 0;
+      const reach = Number(item.reach ?? item.total_reach ?? item.reach_count ?? 0) || 0;
+      const impressions = Number(item.impressions ?? item.total_impressions ?? 0) || 0;
+      const views = Number(item.views ?? item.total_views ?? item.video_views ?? item.view_count ?? 0) || 0;
+
+      return { name, engagement, reach, impressions, views };
+    });
+  };
+
+  // Ensure array contains exactly 7 daily entries (from 6 days ago to today)
+  const ensureSevenDays = (dataArr) => {
+    if (!Array.isArray(dataArr)) return [];
+    if (dataArr.length === 7) return dataArr;
+
+    // Build default 7-day template
+    const template = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const name = d.toLocaleDateString('en-US', { weekday: 'short' });
+      template.push({ name, engagement: 0, reach: 0, impressions: 0, views: 0 });
+    }
+
+    // Map provided data by name (best-effort) and merge into template
+    const mapByName = {};
+    dataArr.forEach(item => {
+      if (!item) return;
+      const n = item.name || item.day || item.label;
+      if (n) mapByName[n] = item;
+    });
+
+    const merged = template.map(t => {
+      const src = mapByName[t.name];
+      if (!src) return t;
+      return {
+        name: t.name,
+        engagement: Number(src.engagement ?? src.total_engagement ?? 0) || 0,
+        reach: Number(src.reach ?? 0) || 0,
+        impressions: Number(src.impressions ?? 0) || 0,
+        views: Number(src.views ?? 0) || 0
+      };
+    });
+
+    return merged;
+  };
+
+  // Helper: aggregate last 7 days' engagement and views from posts
+  const computeWeeklyFromPosts = async (posts) => {
+    // Build 7-day buckets (from 6 days ago to today)
+    const buckets = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setHours(0,0,0,0);
+      date.setDate(date.getDate() - i);
+      const dayKey = date.toISOString().slice(0,10); // YYYY-MM-DD
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+      buckets.push({ key: dayKey, name: dayName, engagement: 0, reach: 0, impressions: 0, views: 0 });
+    }
+
+    if (!posts || posts.length === 0) return buckets.map(b => ({ name: b.name, engagement: 0, reach: 0, impressions: 0, views: 0 }));
+
+    // Map posts by day; for posts missing views, fetch per-post insights (but only once per post)
+    const insightsCache = {};
+
+    const needToFetch = [];
+    posts.forEach(post => {
+      const ts = post.timestamp || post.created_time || post.published_at || post.date || null;
+      if (!ts) return;
+      const postDate = new Date(ts);
+      postDate.setHours(0,0,0,0);
+      const key = postDate.toISOString().slice(0,10);
+      const bucket = buckets.find(b => b.key === key);
+      if (!bucket) return; // outside 7-day window
+
+      const likes = post.like_count || post.likes_count || (post.engagement?.likes) || 0;
+      const comments = post.comments_count || post.comments || (post.engagement?.comments) || 0;
+      const engagement = (likes || 0) + (comments || 0);
+      bucket.engagement += engagement;
+
+      // Prefer direct per-post view fields when available
+      const directFields = ['views','view_count','video_views','play_count','impressions','reach'];
+      let directView = null;
+      for (const f of directFields) {
+        if (typeof post[f] === 'number') { directView = post[f]; break; }
+      }
+      if (directView !== null) {
+        bucket.views += directView;
+      } else {
+        // No direct view field present. Only fetch insights for IMAGE or CAROUSEL posts.
+        if ((post.media_type === 'IMAGE' || post.media_type === 'CAROUSEL_ALBUM') && post.id) {
+          needToFetch.push({ id: post.id, bucketKey: key, media_type: post.media_type });
+        }
+        // For videos with no direct field, skip fetching to avoid triggering unsupported video_views metric
+      }
+    });
+
+    // Fetch insights for posts that need views (limit to avoid many calls)
+    const uniqueFetchById = {};
+  // Only fetch insights for unique IDs (we already limited to image/carousel posts when adding to needToFetch)
+  needToFetch.forEach(item => { uniqueFetchById[item.id] = true; });
+    const idsToFetch = Object.keys(uniqueFetchById).slice(0, 30); // cap to 30 calls
+
+    await Promise.all(idsToFetch.map(async (id) => {
+      try {
+        const res = await fetch(`http://localhost:8000/instagram/insights/media/${id}`);
+        if (!res.ok) return;
+        const json = await res.json();
+        // Expecting structure { success: true, data: [ { name: 'video_views', values: [{value: N}] }, ... ] }
+          if (json && json.success && Array.isArray(json.data)) {
+            insightsCache[id] = json.data;
+          }
+      } catch (err) {
+        // ignore per-post fetch errors
+      }
+    }));
+
+    // Apply fetched insights to buckets — prefer impressions/reach for images
+    needToFetch.forEach(item => {
+      const insights = insightsCache[item.id];
+      if (!insights) return;
+      let viewsValue = 0;
+      // prefer impressions/reach for image/carousel posts
+      const impressionsInsight = insights.find(i => /impression/i.test(i.name));
+      const reachInsight = insights.find(i => /reach/i.test(i.name));
+      const viewLikeInsight = impressionsInsight || reachInsight || insights.find(i => /view/i.test(i.name) || /plays?/i.test(i.name) || /video_views/i.test(i.name));
+      if (viewLikeInsight && Array.isArray(viewLikeInsight.values)) {
+        const lastVal = viewLikeInsight.values[viewLikeInsight.values.length - 1];
+        viewsValue = (lastVal && typeof lastVal.value === 'number') ? lastVal.value : (lastVal && lastVal.value && lastVal.value.total) || 0;
+      }
+      const bucket = buckets.find(b => b.key === item.bucketKey);
+      if (bucket) bucket.views += viewsValue || 0;
+    });
+
+    // Transform to chart-friendly shape (name, engagement, reach, impressions, views)
+    return buckets.map(b => ({ name: b.name, engagement: b.engagement, reach: b.reach || 0, impressions: b.impressions || 0, views: b.views }));
   };
 
   const fetchNextScheduledPost = async () => {
@@ -434,7 +597,6 @@ const Dashboard = ({ onNavigate }) => {
                 <Tooltip />
                 <Line type="monotone" dataKey="engagement" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }} />
                 <Line type="monotone" dataKey="reach" stroke="#10b981" strokeWidth={3} dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }} />
-                <Line type="monotone" dataKey="impressions" stroke="#8b5cf6" strokeWidth={3} dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }} />
                 <Line type="monotone" dataKey="views" stroke="#f59e0b" strokeWidth={3} dot={{ fill: '#f59e0b', strokeWidth: 2, r: 4 }} />
               </LineChart>
             </ResponsiveContainer>

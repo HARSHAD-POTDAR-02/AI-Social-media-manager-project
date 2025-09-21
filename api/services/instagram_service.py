@@ -270,16 +270,18 @@ class InstagramService:
     def get_media_insights(self, media_id: str) -> Dict:
         """Get insights for a specific Instagram media post via Facebook Graph API"""
         try:
+            logger.info(f"Fetching media insights for: {media_id}")
+
+            # Request commonly-available post insights (exclude video_views entirely)
             url = f"{self.base_url}/{media_id}/insights"
             params = {
-                'metric': 'reach,likes,comments,shares,saved,total_interactions',
+                'metric': 'likes,comments,shares,saved,reach',
                 'access_token': self.access_token
             }
-            
-            logger.info(f"Fetching media insights for: {media_id}")
+
             response = requests.get(url, params=params, timeout=10)
             response.encoding = 'utf-8'
-            
+
             if response.status_code != 200:
                 logger.error(f"HTTP {response.status_code}: {response.text}")
                 return {
@@ -299,6 +301,7 @@ class InstagramService:
                 }
             
             logger.info(f"Successfully fetched media insights for: {media_id}")
+            logger.info(f"Media insights data: {data.get('data', [])}")
             return {
                 'success': True,
                 'data': data.get('data', []),

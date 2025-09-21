@@ -9,20 +9,19 @@ async def get_weekly_insights():
     """Get weekly performance insights using real Instagram data"""
     try:
         instagram_service = InstagramService()
-        
-        # Get account insights for the last 7 days with correct v23 metrics
-        insights = instagram_service.get_account_insights(period="day", days=7, metrics="reach,profile_views,accounts_engaged")
-        
+
+        # Get account insights for the last 7 days (reach/accounts_engaged)
+        insights = instagram_service.get_account_insights(period="day", days=7, metrics="reach,accounts_engaged")
         if not insights.get('success'):
             return {"success": False, "data": []}
-        
+
         # Get media posts for engagement calculation
         media_result = instagram_service.get_media_list(50)
         posts = media_result.get('data', {}).get('data', []) if media_result.get('success') else []
-        
+
         # Process real insights data
         insights_data = insights.get('data', [])
-        
+
         # Create daily data structure
         daily_data = {}
         for i in range(7):
@@ -31,30 +30,34 @@ async def get_weekly_insights():
             daily_data[day_name] = {
                 "name": day_name,
                 "engagement": 0,
-                "reach": 0, 
+                "reach": 0,
                 "impressions": 0,
                 "views": 0
             }
-        
-        # Fill with real insights data
+
+        # Fill with real insights data (only reach/accounts_engaged)
         for insight in insights_data:
             metric_name = insight.get('name')
             values = insight.get('values', [])
-            
             for i, value_obj in enumerate(values[:7]):
                 if i < 7:
                     date = datetime.now() - timedelta(days=6-i)
                     day_name = date.strftime('%a')
                     value = value_obj.get('value', 0)
-                    
-                    if metric_name == 'impressions':
-                        daily_data[day_name]["impressions"] = value
-                    elif metric_name == 'reach':
+                    if metric_name == 'reach':
                         daily_data[day_name]["reach"] = value
-                    elif metric_name == 'profile_views':
-                        daily_data[day_name]["views"] = value
-        
-        # Calculate engagement from posts data
+
+        # Calculate engagement from posts data and compute views from per-post fields or insights
+        # Fetch per-post insights (video_views etc.) for posts where necessary
+        post_insights = {}
+        for post in posts[:50]:
+            try:
+                insights_result = instagram_service.get_media_insights(post['id'])
+                if insights_result.get('success'):
+                    post_insights[post['id']] = insights_result.get('data', [])
+            except Exception:
+                continue
+
         for post in posts:
             if post.get('timestamp'):
                 post_date = datetime.fromisoformat(post['timestamp'].replace('Z', '+00:00'))
@@ -62,10 +65,28 @@ async def get_weekly_insights():
                 if day_name in daily_data:
                     engagement = (post.get('like_count', 0) + post.get('comments_count', 0))
                     daily_data[day_name]["engagement"] += engagement
-        
+
+                    # Try to get direct views from post fields first
+                    direct_views = post.get('views') or post.get('view_count') or post.get('video_views') or post.get('play_count')
+                    if isinstance(direct_views, int):
+                        daily_data[day_name]['views'] += direct_views
+                    else:
+                        # Fallback: check per-post insights for video_views or similar
+                        if post['id'] in post_insights:
+                            for insight in post_insights[post['id']]:
+                                name = insight.get('name','').lower()
+                                vals = insight.get('values', []) or []
+                                metric_sum = 0
+                                for v in vals:
+                                    if isinstance(v.get('value'), dict):
+                                        metric_sum += int(v.get('value', {}).get('total', 0) or 0)
+                                    else:
+                                        metric_sum += int(v.get('value', 0) or 0)
+                                if 'video_views' in name or 'views' in name:
+                                    daily_data[day_name]['views'] += metric_sum
+
         data = list(daily_data.values())
         return {"success": True, "data": data}
-        
     except Exception as e:
         return {"success": False, "data": [], "error": str(e)}
 
@@ -84,9 +105,9 @@ async def get_performance_insights():
         media_result = instagram_service.get_media_list(50)
         posts = media_result.get('data', {}).get('data', []) if media_result.get('success') else []
         
-        # Get individual post insights for saves/shares
+        # Get individual post insights for views and reach
         post_insights = {}
-        for post in posts[:10]:  # Limit to recent posts
+        for post in posts[:50]:  # Get more posts for better data
             try:
                 insights_result = instagram_service.get_media_insights(post['id'])
                 if insights_result.get('success'):
@@ -116,14 +137,10 @@ async def get_performance_insights():
                     value = values[i].get('value', 0)
                     metric_name = insight.get('name')
                     
-                    if metric_name == 'impressions':
-                        day_data["impressions"] = value
-                    elif metric_name == 'reach':
+                    if metric_name == 'reach':
                         day_data["reach"] = value
-                    elif metric_name == 'profile_views':
-                        day_data["views"] = value
             
-            # Calculate engagement from posts
+            # Calculate engagement and views from posts
             day_posts = [p for p in posts if p.get('timestamp')]
             for post in day_posts:
                 post_date = datetime.fromisoformat(post['timestamp'].replace('Z', '+00:00'))
@@ -131,13 +148,21 @@ async def get_performance_insights():
                 if days_ago == (6 - i):  # Match the day
                     day_data["engagement"] += (post.get('like_count', 0) + post.get('comments_count', 0))
                     
-                    # Get saves from post insights
+                    # Get views and saves from post insights
                     if post['id'] in post_insights:
                         for insight in post_insights[post['id']]:
-                            if insight.get('name') == 'saved':
-                                day_data["saves"] += insight.get('value', 0)
+                            name = insight.get('name', '')
+                            values = insight.get('values', [])
+                            
+                            if values and len(values) > 0:
+                                value = values[0].get('value', 0)
+                                
+                                if name == 'reach':
+                                    day_data["views"] += int(value or 0)
+                                elif name == 'saved':
+                                    day_data["saves"] += int(value or 0)
             
-            # Estimate shares (Instagram doesn't provide this directly)
+            # Estimate shares
             day_data["shares"] = int(day_data["engagement"] * 0.05)
             
             data.append(day_data)
