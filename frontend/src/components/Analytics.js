@@ -203,285 +203,238 @@ const Analytics = () => {
         return;
       }
       
-      const response = await fetch('http://localhost:8000/dashboard/data', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(20000)
-      });
+      // Fetch all insights data in parallel
+      const [dashboardRes, performanceRes, audienceRes, engagementTimeRes, trendsRes, reachRes] = await Promise.all([
+        fetch('http://localhost:8000/dashboard/data'),
+        fetch('http://localhost:8000/instagram/insights/performance'),
+        fetch('http://localhost:8000/instagram/insights/audience'),
+        fetch('http://localhost:8000/instagram/insights/engagement-time'),
+        fetch('http://localhost:8000/instagram/insights/engagement-trends'),
+        fetch('http://localhost:8000/instagram/insights/reach')
+      ]);
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
+      const [dashboard, performance, audience, engagementTime, trends, reach] = await Promise.all([
+        dashboardRes.json(),
+        performanceRes.json(),
+        audienceRes.json(),
+        engagementTimeRes.json(),
+        trendsRes.json(),
+        reachRes.json()
+      ]);
       
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error('Analytics data fetch failed');
-      }
-      
-      cacheService.set(cacheKey, result, 2 * 60 * 1000); // 2 minutes
-      processAnalyticsData(result);
+      const combinedData = { dashboard, performance, audience, engagementTime, trends, reach };
+      cacheService.set(cacheKey, combinedData, 2 * 60 * 1000);
+      processAnalyticsData(combinedData);
       setDataLoaded(true);
       
     } catch (err) {
       console.error('Analytics error:', err);
-      let errorMessage = 'Failed to load analytics data';
-      
-      if (err.name === 'TimeoutError' || err.message.includes('timeout')) {
-        errorMessage = 'Request timed out after 20 seconds. Please try again.';
-      } else if (err.message.includes('Failed to fetch')) {
-        errorMessage = 'Network error. Please check your connection.';
-      } else {
-        errorMessage = `Failed to load analytics: ${err.message}`;
-      }
-      
-      setError(errorMessage);
+      setError('Failed to load analytics data');
     } finally {
       setLoading(false);
     }
   };
 
-  const processAnalyticsData = (result) => {
-    const { account, media } = result.data;
+  const processAnalyticsData = (data) => {
+    const { dashboard, performance, audience, engagementTime, trends, reach } = data;
     
-    if (account.success && media.success) {
-      const accountData = account.data;
-      const posts = media.data?.data || [];
+    // Process dashboard data for basic metrics
+    if (dashboard.success) {
+      const { account, media } = dashboard.data;
       
-      const totalLikes = posts.reduce((sum, post) => sum + (post.like_count || 0), 0);
-      const totalComments = posts.reduce((sum, post) => sum + (post.comments_count || 0), 0);
-      const totalEngagement = totalLikes + totalComments;
-      const avgEngagementRate = accountData.followers_count > 0 ? 
-        ((totalEngagement / (posts.length * accountData.followers_count)) * 100) : 0;
-      
-      setMetrics([
-        {
-          name: 'Total Followers',
-          value: formatNumber(accountData.followers_count),
-          change: '+2.3%',
-          changePercent: '+1.8%',
-          changeType: 'increase',
-          icon: UserGroupIcon,
-          color: 'text-blue-600',
-          bgColor: 'bg-blue-50'
-        },
-        {
-          name: 'Avg. Engagement Rate',
-          value: avgEngagementRate.toFixed(1) + '%',
-          change: '+0.3%',
-          changePercent: '+7.1%',
-          changeType: 'increase',
-          icon: HeartIcon,
-          color: 'text-pink-600',
-          bgColor: 'bg-pink-50'
-        },
-        {
-          name: 'Total Posts',
-          value: formatNumber(accountData.media_count),
-          change: 'Active',
-          changePercent: '',
-          changeType: 'increase',
-          icon: EyeIcon,
-          color: 'text-green-600',
-          bgColor: 'bg-green-50'
-        },
-        {
-          name: 'Total Engagement',
-          value: formatNumber(totalEngagement),
-          change: formatNumber(totalLikes) + ' likes',
-          changePercent: '',
-          changeType: 'increase',
-          icon: ShareIcon,
-          color: 'text-purple-600',
-          bgColor: 'bg-purple-50'
-        }
-      ]);
-
-      setPlatformData([
-        { platform: 'Instagram', posts: accountData.media_count, engagement: totalEngagement, color: '#E1306C' },
-        { platform: 'LinkedIn', posts: 0, engagement: 0, color: '#0077B5' },
-        { platform: 'Twitter', posts: 0, engagement: 0, color: '#1DA1F2' },
-        { platform: 'Facebook', posts: 0, engagement: 0, color: '#1877F2' }
-      ]);
-
-      const baseEngagement = Math.floor(totalEngagement / 7);
-      const performanceArray = [];
-      for (let i = 0; i < 7; i++) {
-        const variation = Math.sin(i * 0.8) * 0.4 + 1;
-        performanceArray.push({
-          date: `Day ${i + 1}`,
-          engagement: Math.floor(baseEngagement * variation),
-          reach: Math.floor(baseEngagement * variation * 5),
-          views: Math.floor(baseEngagement * variation * 8),
-          impressions: Math.floor(baseEngagement * variation * 12),
-          saves: Math.floor(baseEngagement * variation * 0.3),
-          shares: Math.floor(baseEngagement * variation * 0.2)
-        });
-      }
-      setPerformanceData(performanceArray);
-
-      const imageCount = posts.filter(post => post.media_type === 'IMAGE').length;
-      const videoCount = posts.filter(post => post.media_type === 'VIDEO').length;
-      const carouselCount = posts.filter(post => post.media_type === 'CAROUSEL_ALBUM').length;
-      const totalPosts = posts.length;
-      
-      if (totalPosts > 0) {
-        setContentTypeData([
-          { type: 'Images', value: Math.round((imageCount / totalPosts) * 100), color: '#3B82F6' },
-          { type: 'Videos', value: Math.round((videoCount / totalPosts) * 100), color: '#10B981' },
-          { type: 'Carousels', value: Math.round((carouselCount / totalPosts) * 100), color: '#F59E0B' },
-          { type: 'Stories', value: 0, color: '#8B5CF6' }
+      if (account.success && media.success) {
+        const accountData = account.data;
+        const posts = media.data?.data || [];
+        
+        const totalLikes = posts.reduce((sum, post) => sum + (post.like_count || 0), 0);
+        const totalComments = posts.reduce((sum, post) => sum + (post.comments_count || 0), 0);
+        const totalEngagement = totalLikes + totalComments;
+        const avgEngagementRate = accountData.followers_count > 0 ? 
+          ((totalEngagement / (posts.length * accountData.followers_count)) * 100) : 0;
+        
+        setMetrics([
+          {
+            name: 'Total Followers',
+            value: formatNumber(accountData.followers_count),
+            change: '+2.3%',
+            changePercent: '+1.8%',
+            changeType: 'increase',
+            icon: UserGroupIcon,
+            color: 'text-blue-600',
+            bgColor: 'bg-blue-50'
+          },
+          {
+            name: 'Avg. Engagement Rate',
+            value: avgEngagementRate.toFixed(1) + '%',
+            change: '+0.3%',
+            changePercent: '+7.1%',
+            changeType: 'increase',
+            icon: HeartIcon,
+            color: 'text-pink-600',
+            bgColor: 'bg-pink-50'
+          },
+          {
+            name: 'Total Posts',
+            value: formatNumber(accountData.media_count),
+            change: 'Active',
+            changePercent: '',
+            changeType: 'increase',
+            icon: EyeIcon,
+            color: 'text-green-600',
+            bgColor: 'bg-green-50'
+          },
+          {
+            name: 'Total Engagement',
+            value: formatNumber(totalEngagement),
+            change: formatNumber(totalLikes) + ' likes',
+            changePercent: '',
+            changeType: 'increase',
+            icon: ShareIcon,
+            color: 'text-purple-600',
+            bgColor: 'bg-purple-50'
+          }
         ]);
-      }
 
-      // Process hashtags
-      const hashtagMap = {};
-      posts.forEach(post => {
-        if (post.caption) {
-          const hashtags = post.caption.match(/#[a-zA-Z0-9_]+/g) || [];
-          hashtags.forEach(tag => {
-            const cleanTag = tag.toLowerCase();
-            if (!hashtagMap[cleanTag]) {
-              hashtagMap[cleanTag] = { hashtag: cleanTag, reach: 0, engagement: 0, count: 0 };
-            }
-            hashtagMap[cleanTag].engagement += (post.like_count || 0) + (post.comments_count || 0);
-            hashtagMap[cleanTag].reach += (post.like_count || 0) * 4;
-            hashtagMap[cleanTag].count++;
-          });
-        }
-      });
-      
-      const topHashtags = Object.values(hashtagMap)
-        .filter(h => h.count >= 1)
-        .sort((a, b) => b.engagement - a.engagement)
-        .slice(0, 5);
-      
-      if (topHashtags.length === 0) {
-        setHashtagPerformance([
-          { hashtag: '#content', reach: Math.floor(totalEngagement * 3.2), engagement: Math.floor(totalEngagement * 0.8) },
-          { hashtag: '#social', reach: Math.floor(totalEngagement * 2.8), engagement: Math.floor(totalEngagement * 0.6) },
-          { hashtag: '#media', reach: Math.floor(totalEngagement * 2.1), engagement: Math.floor(totalEngagement * 0.4) },
-          { hashtag: '#digital', reach: Math.floor(totalEngagement * 1.9), engagement: Math.floor(totalEngagement * 0.3) },
-          { hashtag: '#marketing', reach: Math.floor(totalEngagement * 1.5), engagement: Math.floor(totalEngagement * 0.25) }
+        setPlatformData([
+          { platform: 'Instagram', posts: accountData.media_count, engagement: totalEngagement, color: '#E1306C' },
+          { platform: 'LinkedIn', posts: 0, engagement: 0, color: '#0077B5' },
+          { platform: 'Twitter', posts: 0, engagement: 0, color: '#1DA1F2' },
+          { platform: 'Facebook', posts: 0, engagement: 0, color: '#1877F2' }
         ]);
-      } else {
-        setHashtagPerformance(topHashtags);
-      }
 
-      // Process top posts - sort by engagement first
-      const sortedPosts = posts
-        .map(post => ({
-          id: post.id,
-          platform: 'Instagram',
-          content: (post.caption || 'No caption').substring(0, 100),
-          engagement: (post.like_count || 0) + (post.comments_count || 0),
-          likes: post.like_count || 0,
-          comments: post.comments_count || 0,
-          reach: ((post.like_count || 0) + (post.comments_count || 0)) * 5,
-          date: post.timestamp ? new Date(post.timestamp).toLocaleDateString() : 'Unknown'
-        }))
-        .sort((a, b) => b.engagement - a.engagement)
-        .slice(0, 3);
-      setTopPosts(sortedPosts);
-
-      // Growth data from post timestamps
-      const monthlyData = {};
-      const currentMonth = new Date().getMonth();
-      
-      for (let i = 3; i >= 0; i--) {
-        const date = new Date();
-        date.setMonth(currentMonth - i);
-        const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
-        monthlyData[monthKey] = { month: monthKey, posts: 0, followers: accountData.followers_count };
-      }
-      
-      posts.forEach(post => {
-        const monthKey = new Date(post.timestamp).toLocaleDateString('en-US', { month: 'short' });
-        if (monthlyData[monthKey]) {
-          monthlyData[monthKey].posts++;
+        // Process content types
+        const imageCount = posts.filter(post => post.media_type === 'IMAGE').length;
+        const videoCount = posts.filter(post => post.media_type === 'VIDEO').length;
+        const carouselCount = posts.filter(post => post.media_type === 'CAROUSEL_ALBUM').length;
+        const totalPosts = posts.length;
+        
+        if (totalPosts > 0) {
+          setContentTypeData([
+            { type: 'Images', value: Math.round((imageCount / totalPosts) * 100), color: '#3B82F6' },
+            { type: 'Videos', value: Math.round((videoCount / totalPosts) * 100), color: '#10B981' },
+            { type: 'Carousels', value: Math.round((carouselCount / totalPosts) * 100), color: '#F59E0B' },
+            { type: 'Stories', value: 0, color: '#8B5CF6' }
+          ]);
         }
-      });
-      
-      setGrowthData(Object.values(monthlyData));
 
-      // Post frequency by day of week
-      const weeklyData = {
-        'Mon': { day: 'Mon', posts: 0, avgEngagement: 0 },
-        'Tue': { day: 'Tue', posts: 0, avgEngagement: 0 },
-        'Wed': { day: 'Wed', posts: 0, avgEngagement: 0 },
-        'Thu': { day: 'Thu', posts: 0, avgEngagement: 0 },
-        'Fri': { day: 'Fri', posts: 0, avgEngagement: 0 },
-        'Sat': { day: 'Sat', posts: 0, avgEngagement: 0 },
-        'Sun': { day: 'Sun', posts: 0, avgEngagement: 0 }
-      };
-      
-      posts.forEach(post => {
-        const dayName = new Date(post.timestamp).toLocaleDateString('en-US', { weekday: 'short' });
-        if (weeklyData[dayName]) {
-          weeklyData[dayName].posts++;
-          weeklyData[dayName].avgEngagement += (post.like_count || 0) + (post.comments_count || 0);
-        }
-      });
-      
-      Object.keys(weeklyData).forEach(day => {
-        if (weeklyData[day].posts > 0) {
-          weeklyData[day].avgEngagement = Math.floor(weeklyData[day].avgEngagement / weeklyData[day].posts);
-        }
-      });
-      
-      setPostFrequency(Object.values(weeklyData));
-
-      // Real engagement by time based on actual post timestamps
-      const hourlyEngagement = Array(24).fill(0);
-      posts.forEach(post => {
-        const hour = new Date(post.timestamp).getHours();
-        hourlyEngagement[hour] += (post.like_count || 0) + (post.comments_count || 0);
-      });
-      
-      setEngagementByTime([
-        { time: '6AM', engagement: hourlyEngagement[6] + hourlyEngagement[7] },
-        { time: '9AM', engagement: hourlyEngagement[9] + hourlyEngagement[10] },
-        { time: '12PM', engagement: hourlyEngagement[12] + hourlyEngagement[13] },
-        { time: '3PM', engagement: hourlyEngagement[15] + hourlyEngagement[16] },
-        { time: '6PM', engagement: hourlyEngagement[18] + hourlyEngagement[19] },
-        { time: '9PM', engagement: hourlyEngagement[21] + hourlyEngagement[22] },
-        { time: '12AM', engagement: hourlyEngagement[0] + hourlyEngagement[1] }
-      ]);
-
-      // Weekly engagement trends
-      const weeklyTrends = [];
-      const weeksData = [[], [], [], []];
-      
-      posts.forEach((post, index) => {
-        const weekIndex = Math.floor(index / Math.ceil(posts.length / 4));
-        if (weekIndex < 4) {
-          weeksData[weekIndex].push(post);
-        }
-      });
-      
-      weeksData.forEach((weekPosts, index) => {
-        const weekLikes = weekPosts.reduce((sum, post) => sum + (post.like_count || 0), 0);
-        const weekComments = weekPosts.reduce((sum, post) => sum + (post.comments_count || 0), 0);
-        weeklyTrends.push({
-          week: `Week ${index + 1}`,
-          likes: weekLikes,
-          comments: weekComments,
-          shares: Math.floor(weekLikes * 0.1)
+        // Process hashtags
+        const hashtagMap = {};
+        posts.forEach(post => {
+          if (post.caption) {
+            const hashtags = post.caption.match(/#[a-zA-Z0-9_]+/g) || [];
+            hashtags.forEach(tag => {
+              const cleanTag = tag.toLowerCase();
+              if (!hashtagMap[cleanTag]) {
+                hashtagMap[cleanTag] = { hashtag: cleanTag, reach: 0, engagement: 0, count: 0 };
+              }
+              hashtagMap[cleanTag].engagement += (post.like_count || 0) + (post.comments_count || 0);
+              hashtagMap[cleanTag].reach += (post.like_count || 0) * 4;
+              hashtagMap[cleanTag].count++;
+            });
+          }
         });
-      });
-      
-      setEngagementTrends(weeklyTrends);
+        
+        const topHashtags = Object.values(hashtagMap)
+          .filter(h => h.count >= 1)
+          .sort((a, b) => b.engagement - a.engagement)
+          .slice(0, 5);
+        
+        if (topHashtags.length === 0) {
+          setHashtagPerformance([
+            { hashtag: '#content', reach: Math.floor(totalEngagement * 3.2), engagement: Math.floor(totalEngagement * 0.8) },
+            { hashtag: '#social', reach: Math.floor(totalEngagement * 2.8), engagement: Math.floor(totalEngagement * 0.6) },
+            { hashtag: '#media', reach: Math.floor(totalEngagement * 2.1), engagement: Math.floor(totalEngagement * 0.4) },
+            { hashtag: '#digital', reach: Math.floor(totalEngagement * 1.9), engagement: Math.floor(totalEngagement * 0.3) },
+            { hashtag: '#marketing', reach: Math.floor(totalEngagement * 1.5), engagement: Math.floor(totalEngagement * 0.25) }
+          ]);
+        } else {
+          setHashtagPerformance(topHashtags);
+        }
 
-      // Reach and impressions data
-      const totalReach = totalEngagement * 4;
-      const totalImpressions = totalEngagement * 8;
-      const profileViews = totalEngagement * 2;
-      
-      setReachData([
-        { metric: 'Reach', value: totalReach, color: '#3B82F6' },
-        { metric: 'Impressions', value: totalImpressions, color: '#10B981' },
-        { metric: 'Profile Views', value: profileViews, color: '#F59E0B' }
-      ]);
+        // Process top posts
+        const sortedPosts = posts
+          .map(post => ({
+            id: post.id,
+            platform: 'Instagram',
+            content: (post.caption || 'No caption').substring(0, 100),
+            engagement: (post.like_count || 0) + (post.comments_count || 0),
+            likes: post.like_count || 0,
+            comments: post.comments_count || 0,
+            reach: ((post.like_count || 0) + (post.comments_count || 0)) * 5,
+            date: post.timestamp ? new Date(post.timestamp).toLocaleDateString() : 'Unknown'
+          }))
+          .sort((a, b) => b.engagement - a.engagement)
+          .slice(0, 3);
+        setTopPosts(sortedPosts);
+
+        // Growth data
+        const monthlyData = {};
+        const currentMonth = new Date().getMonth();
+        
+        for (let i = 3; i >= 0; i--) {
+          const date = new Date();
+          date.setMonth(currentMonth - i);
+          const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+          monthlyData[monthKey] = { month: monthKey, posts: 0, followers: accountData.followers_count };
+        }
+        
+        posts.forEach(post => {
+          const monthKey = new Date(post.timestamp).toLocaleDateString('en-US', { month: 'short' });
+          if (monthlyData[monthKey]) {
+            monthlyData[monthKey].posts++;
+          }
+        });
+        
+        setGrowthData(Object.values(monthlyData));
+
+        // Post frequency by day
+        const weeklyData = {
+          'Mon': { day: 'Mon', posts: 0, avgEngagement: 0 },
+          'Tue': { day: 'Tue', posts: 0, avgEngagement: 0 },
+          'Wed': { day: 'Wed', posts: 0, avgEngagement: 0 },
+          'Thu': { day: 'Thu', posts: 0, avgEngagement: 0 },
+          'Fri': { day: 'Fri', posts: 0, avgEngagement: 0 },
+          'Sat': { day: 'Sat', posts: 0, avgEngagement: 0 },
+          'Sun': { day: 'Sun', posts: 0, avgEngagement: 0 }
+        };
+        
+        posts.forEach(post => {
+          const dayName = new Date(post.timestamp).toLocaleDateString('en-US', { weekday: 'short' });
+          if (weeklyData[dayName]) {
+            weeklyData[dayName].posts++;
+            weeklyData[dayName].avgEngagement += (post.like_count || 0) + (post.comments_count || 0);
+          }
+        });
+        
+        Object.keys(weeklyData).forEach(day => {
+          if (weeklyData[day].posts > 0) {
+            weeklyData[day].avgEngagement = Math.floor(weeklyData[day].avgEngagement / weeklyData[day].posts);
+          }
+        });
+        
+        setPostFrequency(Object.values(weeklyData));
+      }
+    }
+
+    // Use real insights data
+    if (performance.success && performance.data) {
+      setPerformanceData(performance.data);
+    }
+
+    if (audience.success && audience.data) {
+      setAudienceInsights(audience.data);
+    }
+
+    if (engagementTime.success && engagementTime.data) {
+      setEngagementByTime(engagementTime.data);
+    }
+
+    if (trends.success && trends.data) {
+      setEngagementTrends(trends.data);
+    }
+
+    if (reach.success && reach.data) {
+      setReachData(reach.data);
     }
   };
   

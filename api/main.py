@@ -23,6 +23,7 @@ from routes.scheduling import router as scheduling_router
 from routes.scheduler import router as scheduler_router
 from routes.dashboard import router as dashboard_router
 from routes.performance import router as performance_router
+from routes.insights import router as insights_router
 from services.scheduler_service import scheduler_service
 
 # Load environment variables from the api/.env file
@@ -56,6 +57,7 @@ app.include_router(scheduling_router)
 app.include_router(scheduler_router, prefix="/api")
 app.include_router(dashboard_router)
 app.include_router(performance_router)
+app.include_router(insights_router)
 
 # Initialize the graph
 groq_api_key = os.getenv("GROQ_API_KEY")

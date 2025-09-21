@@ -253,31 +253,8 @@ const Dashboard = ({ onNavigate }) => {
         }
       ]);
       
-      if (posts.length > 0) {
-        const last7Days = [];
-        for (let i = 6; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-          last7Days.push({ date, dayName });
-        }
-        
-        const totalEngagement = totalLikes + totalComments;
-        const baseEngagement = Math.floor(totalEngagement / 7);
-        
-        const chartData = last7Days.map((day, index) => {
-          const variation = Math.sin(index * 0.8) * 0.3 + 1;
-          return {
-            name: day.dayName,
-            engagement: Math.floor(baseEngagement * variation),
-            reach: Math.floor(baseEngagement * variation * 4),
-            impressions: Math.floor(baseEngagement * variation * 7),
-            views: Math.floor(baseEngagement * variation * 6)
-          };
-        });
-        
-        setAnalyticsData(chartData);
-      }
+      // Fetch real weekly insights data
+      fetchWeeklyInsights();
     }
     
     if (top_posts.success) {
@@ -316,6 +293,20 @@ const Dashboard = ({ onNavigate }) => {
     }
   };
   
+  const fetchWeeklyInsights = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/instagram/insights/weekly');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          setAnalyticsData(result.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching weekly insights:', error);
+    }
+  };
+
   const fetchNextScheduledPost = async () => {
     try {
       const response = await fetch('http://localhost:8000/api/scheduled-posts');
