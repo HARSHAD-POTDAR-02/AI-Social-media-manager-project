@@ -344,6 +344,10 @@ class PublishingAgent:
             content = ''
             image_path = None
         
+        # If no content from communication system, try to get from state directly
+        if not content and generated_content:
+            content = generated_content.get('content', '')
+        
         result_message = "Content processed"
         
         if content:
@@ -393,6 +397,8 @@ class PublishingAgent:
                     
                     # Create scheduled post
                     print(f"Creating scheduled post with time: {schedule_time}")
+                    print(f"Content being scheduled (first 100 chars): {content[:100]}...")
+                    print(f"Full content length: {len(content)} characters")
                     post = self._create_scheduled_post(content, image_url, schedule_time)
                     
                     # Get scheduled time for display

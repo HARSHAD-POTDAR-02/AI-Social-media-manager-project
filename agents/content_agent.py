@@ -280,11 +280,11 @@ class ContentAgent:
         # Add agent response only once
         existing_responses = [r for r in state.get('agent_responses', []) if r.get('agent') == self.name]
         if not existing_responses:
-            response_text = f'Generated content: {content[:50]}...'
+            response_text = 'Multi-platform content created successfully'
             if strategy_data:
                 response_text += ' (based on strategy recommendations)'
             if image_url:
-                response_text += f' | Image: {image_url}'
+                response_text += ' (with generated image)'
             
             state['agent_responses'].append({
                 'agent': self.name,
