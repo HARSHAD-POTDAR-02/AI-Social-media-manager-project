@@ -13,6 +13,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Import agent communication system
+from agents.agent_communication import AgentCommunication, AgentCoordinator
+
 
 class ContentAgent:
     """
@@ -163,6 +166,31 @@ class ContentAgent:
         
         return "\n".join(brief_parts)
     
+    def _create_enhanced_content_brief(self, state: Dict[str, Any], strategy_data: Dict, analytics_data: Dict) -> str:
+        """Create enhanced content brief using previous agent insights"""
+        # Start with basic brief
+        brief = self._create_content_brief(state)
+        
+        # Add strategy insights
+        if strategy_data:
+            brief += "\n\nStrategy Recommendations:"
+            if strategy_data.get('focus_area'):
+                brief += f"\n- Focus on: {strategy_data['focus_area']}"
+            if strategy_data.get('strategy_summary'):
+                brief += f"\n- Key insight: {strategy_data['strategy_summary'][:100]}..."
+        
+        # Add analytics insights
+        if analytics_data:
+            brief += "\n\nAnalytics Insights:"
+            if analytics_data.get('top_theme'):
+                brief += f"\n- Best performing theme: {analytics_data['top_theme']}"
+            if analytics_data.get('engagement_rate'):
+                brief += f"\n- Current engagement rate: {analytics_data['engagement_rate']}%"
+            if analytics_data.get('best_content_type'):
+                brief += f"\n- Best content format: {analytics_data['best_content_type']}"
+        
+        return brief
+    
     def _needs_image(self, request: str) -> bool:
         """Check if request needs image generation"""
         image_keywords = ['image', 'picture', 'photo', 'visual', 'generate image', 'create image', 'make image']
@@ -196,12 +224,22 @@ class ContentAgent:
 
     def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Enhanced content creation with image generation support
+        Enhanced content creation with strategy and analytics integration
         """
         print(f"Content Agent processing: {state.get('user_request', '')}")
         state["current_agent"] = self.name
         
         user_request = state.get('user_request', '')
+        
+        # Get previous agent insights using communication system
+        agent_context = AgentCoordinator.prepare_agent_context(state, self.name)
+        strategy_data = agent_context.get('strategy_recommendations', {})
+        analytics_data = agent_context.get('analytics_insights', {})
+        
+        if strategy_data:
+            print(f"[CONTENT] Using strategy recommendations from previous agent")
+        if analytics_data:
+            print(f"[CONTENT] Using analytics data: best_theme={analytics_data.get('top_theme', 'N/A')}")
         
         # Check if image generation is needed
         image_url = None
@@ -210,8 +248,8 @@ class ContentAgent:
             print(f"Image generation requested: {image_prompt}")
             image_url = self._generate_image(image_prompt)
         
-        # Create brief and generate content
-        brief = self._create_content_brief(state)
+        # Create enhanced brief with previous agent data
+        brief = self._create_enhanced_content_brief(state, strategy_data, analytics_data)
         content = self._generate_content(brief)
         
         # Do 2 reflection cycles
@@ -221,15 +259,20 @@ class ContentAgent:
             if improved and len(improved) > 10:
                 content = improved
         
+        # Add communication metadata
+        AgentCommunication.add_communication_metadata(state, self.name, bool(strategy_data or analytics_data))
+        
         # Set results with image if generated
         result = {
             'content': content,
             'reflection_count': 3,
-            'status': 'completed'
+            'status': 'completed',
+            'used_strategy_data': bool(strategy_data),
+            'used_analytics_data': bool(analytics_data)
         }
         
         if image_url:
-            result['image_path'] = image_url  # Now it's a file path
+            result['image_path'] = image_url
             result['has_image'] = True
         
         state['generated_content'] = result
@@ -238,6 +281,8 @@ class ContentAgent:
         existing_responses = [r for r in state.get('agent_responses', []) if r.get('agent') == self.name]
         if not existing_responses:
             response_text = f'Generated content: {content[:50]}...'
+            if strategy_data:
+                response_text += ' (based on strategy recommendations)'
             if image_url:
                 response_text += f' | Image: {image_url}'
             
@@ -247,7 +292,8 @@ class ContentAgent:
                 'result': response_text,
                 'reflection_count': 3,
                 'has_image': bool(image_url),
-                'image_url': image_url
+                'image_url': image_url,
+                'used_previous_agents': list(agent_context.get('previous_agents', {}).keys())
             })
         
         print(f"Content generated: {len(content)} chars, Image: {bool(image_url)}")

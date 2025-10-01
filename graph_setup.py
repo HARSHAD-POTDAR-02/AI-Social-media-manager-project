@@ -90,7 +90,7 @@ class SocialMediaManagerGraph:
         
         # Initialize all agents
         self.orchestrator = OrchestratorAgent()
-        self.strategy_agent = StrategyAgent()
+        self.strategy_agent = StrategyAgent(self.groq_api_key)  # Pass API key for enhanced functionality
         self.content_agent = ContentAgent()
         self.publishing_agent = PublishingAgent()
         self.community_agent = CommunityAgent()

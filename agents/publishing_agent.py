@@ -12,6 +12,7 @@ import requests
 from datetime import datetime, timedelta
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from api.services.instagram_service import InstagramService
+from agents.agent_communication import AgentCommunication, AgentCoordinator
 
 class PublishingAgent:
     """
@@ -313,25 +314,39 @@ class PublishingAgent:
     
     def process(self, state: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Enhanced publishing with scheduling and Instagram posting
+        Enhanced publishing with content agent integration
         """
         state['current_agent'] = self.name
         print(f"Publishing Agent processing: {state.get('user_request', '')}")
         
         user_request = state.get('user_request', '').lower()
+        
+        # Get content from previous agent using communication system
+        agent_context = AgentCoordinator.prepare_agent_context(state, self.name)
+        content_data = agent_context.get('content_data', {})
+        
+        # Also check state for generated content (fallback)
         generated_content = state.get('generated_content', {})
         
-        # Always schedule posts - let background scheduler handle timing
-        # No immediate posting through agents
+        if content_data:
+            print(f"[PUBLISHING] Using content from Content Agent")
+            content = content_data.get('generated_content', '')
+            # Look for image in content agent response
+            image_path = None
+            for response in state.get('agent_responses', []):
+                if response.get('agent') == 'content' and response.get('image_url'):
+                    image_path = response['image_url']
+                    break
+        elif generated_content:
+            content = generated_content.get('content', '')
+            image_path = generated_content.get('image_path')
+        else:
+            content = ''
+            image_path = None
         
         result_message = "Content processed"
         
-        # Only post immediately if explicitly requested with "now" keywords
-        # Don't force immediate posting for scheduled content
-        
-        if generated_content:
-            content = generated_content.get('content', '')
-            image_path = generated_content.get('image_path')
+        if content:
             
             # Check if we have an image (URL or file path)
             if not image_path:
@@ -388,12 +403,16 @@ class PublishingAgent:
                     # NEVER publish immediately - always schedule
                     result_message = f"Content scheduled for {scheduled_datetime.strftime('%I:%M %p on %B %d, %Y')}. Will be posted automatically by scheduler."
         
+        # Add communication metadata
+        AgentCommunication.add_communication_metadata(state, self.name, bool(content_data))
+        
         # Add response
         state['agent_responses'].append({
             'agent': self.name,
             'action': 'content_publishing',
             'result': result_message,
-            'platforms': ['Instagram']
+            'platforms': ['Instagram'],
+            'used_content_agent': bool(content_data)
         })
         
         return state
