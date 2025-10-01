@@ -17,7 +17,7 @@ class InstagramService:
         
         # Simple cache with 5-minute expiry
         self._cache = {}
-        self._cache_expiry = 300  # 5 minutes
+        self._cache_expiry = 600  # 10 minutes
         
         # Validate required credentials
         if not self.access_token:

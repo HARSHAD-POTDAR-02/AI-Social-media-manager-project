@@ -2,7 +2,7 @@ class CacheService {
   constructor() {
     this.cache = new Map();
     this.expiry = new Map();
-    this.defaultTTL = 5 * 60 * 1000; // 5 minutes
+    this.defaultTTL = 10 * 60 * 1000; // 10 minutes
   }
 
   set(key, value, ttl = this.defaultTTL) {
