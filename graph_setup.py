@@ -23,10 +23,7 @@ from agents.community_agent import CommunityAgent
 from agents.listening_agent import ListeningAgent
 from agents.analytics_agent import AnalyticsAgent
 from agents.crisis_agent import CrisisAgent
-from agents.influencer_agent import InfluencerAgent
-from agents.paid_social_agent import PaidSocialAgent
 from agents.compliance_agent import ComplianceAgent
-from agents.parallel_coordinator_agent import ParallelCoordinatorAgent
 from central_router import CentralRouter
 
 # Define the state structure for the graph
@@ -97,10 +94,7 @@ class SocialMediaManagerGraph:
         self.listening_agent = ListeningAgent()
         self.analytics_agent = AnalyticsAgent(self.groq_api_key)  # Pass API key
         self.crisis_agent = CrisisAgent()
-        self.influencer_agent = InfluencerAgent()
-        self.paid_social_agent = PaidSocialAgent()
         self.compliance_agent = ComplianceAgent()
-        self.parallel_coordinator = ParallelCoordinatorAgent()
         
         # Create the state graph
         self.workflow = StateGraph(GraphState)
@@ -132,14 +126,7 @@ class SocialMediaManagerGraph:
         
         # Specialized agents
         self.workflow.add_node("crisis", self.crisis_agent.process)
-        self.workflow.add_node("influencer", self.influencer_agent.process)
-        self.workflow.add_node("paid_social", self.paid_social_agent.process)
         self.workflow.add_node("compliance", self.compliance_agent.process)
-        
-        # Parallel execution
-        self.workflow.add_node("parallel_coordinator", self.parallel_coordinator.process)
-        self.workflow.add_node("parallel_execution", self.execute_parallel_tasks)
-        self.workflow.add_node("aggregate_results", self.aggregate_parallel_results)
         
         # Human-in-the-loop nodes
         self.workflow.add_node("human_review", self.human_review_checkpoint)
@@ -171,10 +158,7 @@ class SocialMediaManagerGraph:
                 "listening": "listening",
                 "analytics": "analytics",
                 "crisis": "crisis",
-                "influencer": "influencer",
-                "paid_social": "paid_social",
-                "compliance": "compliance",
-                "parallel": "parallel_coordinator"
+                "compliance": "compliance"
             }
         )
         
@@ -191,8 +175,6 @@ class SocialMediaManagerGraph:
             "listening": "listening",
             "analytics": "analytics",
             "crisis": "crisis",
-            "influencer": "influencer",
-            "paid_social": "paid_social",
             "compliance": "compliance",
         }
         
@@ -202,7 +184,7 @@ class SocialMediaManagerGraph:
         # Use unified routing for other agents
         for node in [
             "strategy","publishing","listening","analytics",
-            "influencer","paid_social","compliance","community"
+            "compliance","community"
         ]:
             self.workflow.add_conditional_edges(node, self.next_step_router, post_map)
         
@@ -220,10 +202,7 @@ class SocialMediaManagerGraph:
             }
         )
         
-        # Parallel execution edges
-        self.workflow.add_edge("parallel_coordinator", "parallel_execution")
-        self.workflow.add_edge("parallel_execution", "aggregate_results")
-        self.workflow.add_edge("aggregate_results", "prepare_response")
+
         
         # Human review edges
         self.workflow.add_edge("human_review", "apply_human_feedback")
@@ -293,9 +272,7 @@ class SocialMediaManagerGraph:
         
         print(f"Determining path: agent={current_agent}, workflow={workflow_type}")
         
-        if workflow_type == 'parallel':
-            return 'parallel'
-        elif workflow_type == 'sequential':
+        if workflow_type == 'sequential':
             queue = state.get('agent_queue', [])
             if queue:
                 return queue[0]
@@ -381,20 +358,7 @@ class SocialMediaManagerGraph:
         else:
             return 'low'
     
-    def execute_parallel_tasks(self, state: GraphState) -> GraphState:
-        """
-        Execute tasks in parallel
-        """
-        print(f"Executing {len(state.get('parallel_tasks', []))} tasks in parallel")
-        # In actual implementation, this would execute agents concurrently
-        return state
-    
-    def aggregate_parallel_results(self, state: GraphState) -> GraphState:
-        """
-        Aggregate results from parallel execution
-        """
-        print("Aggregating parallel execution results")
-        return state
+
     
     def human_review_checkpoint(self, state: GraphState) -> GraphState:
         """

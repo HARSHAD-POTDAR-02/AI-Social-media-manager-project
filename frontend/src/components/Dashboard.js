@@ -759,6 +759,14 @@ const Dashboard = ({ onNavigate }) => {
           
           {nextPost ? (
             <div className="space-y-4">
+              {nextPost.image && (
+                <img 
+                  src={nextPost.image} 
+                  alt="Scheduled post content" 
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              )}
+              
               <p className="text-gray-700 text-sm leading-relaxed">{nextPost.content}</p>
               
               <div className="flex items-center justify-between pt-4 border-t border-gray-100">

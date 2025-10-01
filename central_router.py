@@ -29,8 +29,6 @@ class CentralRouter:
             "listening": "Social listening, brand mentions monitoring, industry intelligence, influencer tracking",
             "analytics": "Performance analysis, ROI measurement, predictive analytics, reporting",
             "crisis": "Crisis management, issue detection, response coordination, reputation recovery",
-            "influencer": "Influencer discovery, partnership management, campaign tracking",
-            "paid_social": "Paid advertising, campaign optimization, audience targeting, budget management",
             "compliance": "Brand safety, content moderation, legal compliance, risk assessment"
         }
         
@@ -95,8 +93,6 @@ class CentralRouter:
         - listening: Social listening, brand mentions, industry intelligence, influencer tracking
         - analytics: Performance analysis, ROI measurement, predictive analytics, reporting
         - crisis: Crisis management, issue detection, response coordination, reputation recovery
-        - influencer: Influencer discovery, partnership management, campaign tracking
-        - paid_social: Paid advertising, campaign optimization, audience targeting, budget management
         - compliance: Brand safety, content moderation, legal compliance, risk assessment
         
         CRITICAL: For complex multi-step requests, you MUST identify ALL required agents in the correct sequence.
@@ -245,8 +241,6 @@ Respond in JSON format:
             "community": ["respond", "engage", "comment", "reply", "community"],
             "listening": ["monitor", "listen", "track", "mention", "sentiment"],
             "crisis": ["crisis", "urgent", "emergency", "issue", "problem"],
-            "influencer": ["influencer", "partnership", "collaboration", "ambassador"],
-            "paid_social": ["ad", "advertis", "campaign", "paid", "promotion"],
             "compliance": ["compliance", "legal", "safety", "moderate", "risk"]
         }
         
