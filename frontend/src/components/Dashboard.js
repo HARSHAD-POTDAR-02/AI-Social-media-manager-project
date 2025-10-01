@@ -39,22 +39,21 @@ const Dashboard = ({ onNavigate }) => {
   const [nextPost, setNextPost] = useState(null);
   const [stats, setStats] = useState([]);
 
-  const [contentStrategy] = useState({
-    theme: "Summer Campaign 2025",
-    focus: "User-generated content & community engagement",
-    keyTopics: ["Summer fashion", "Sustainability", "Community stories"],
-    suggestedHashtags: ["#SummerVibes", "#EcoFashion", "#CommunityFirst"],
-    targetAudience: "Fashion-conscious millennials & Gen Z",
-    contentPillars: [
-      { pillar: "Product Showcase", percentage: 40 },
-      { pillar: "Behind the Scenes", percentage: 30 },
-      { pillar: "User Generated", percentage: 20 },
-      { pillar: "Educational", percentage: 10 }
-    ]
+  const [contentStrategy, setContentStrategy] = useState({
+    theme: "Loading...",
+    focus: "Fetching trending content strategy...",
+    keyTopics: [],
+    suggestedHashtags: [],
+    targetAudience: "Loading...",
+    contentPillars: [],
+    trendingTopics: [],
+    recommendations: [],
+    lastUpdated: null
   });
 
   useEffect(() => {
     loadDefaultData();
+    fetchContentStrategy();
     
     const timer = setTimeout(() => {
       if (!dataLoaded) {
@@ -222,8 +221,8 @@ const Dashboard = ({ onNavigate }) => {
         {
           name: 'Followers',
           value: formatNumber(followerCount),
-          change: followerCount === 0 ? 'New Account' : '+2.3%',
-          changeType: followerCount === 0 ? 'neutral' : 'increase',
+          change: followerCount === 0 ? 'New Account' : `${followerCount} total`,
+          changeType: 'neutral',
           icon: UserGroupIcon,
           color: 'text-blue-600',
           bgColor: 'bg-blue-50'
@@ -231,8 +230,8 @@ const Dashboard = ({ onNavigate }) => {
         {
           name: 'Posts',
           value: formatNumber(mediaCount),
-          change: mediaCount === 0 ? 'Start Posting' : 'Active',
-          changeType: mediaCount === 0 ? 'neutral' : 'increase',
+          change: mediaCount === 0 ? 'Start Posting' : `${mediaCount} published`,
+          changeType: 'neutral',
           icon: PhotoIcon,
           color: 'text-green-600',
           bgColor: 'bg-green-50'
@@ -240,8 +239,8 @@ const Dashboard = ({ onNavigate }) => {
         {
           name: 'Total Likes',
           value: formatNumber(totalLikes),
-          change: totalLikes > 0 ? 'Engaging' : 'No Likes Yet',
-          changeType: totalLikes > 0 ? 'increase' : 'neutral',
+          change: totalLikes > 0 ? `${(totalLikes/mediaCount || 0).toFixed(1)} avg per post` : 'No Likes Yet',
+          changeType: 'neutral',
           icon: HeartIcon,
           color: 'text-pink-600',
           bgColor: 'bg-pink-50'
@@ -249,8 +248,8 @@ const Dashboard = ({ onNavigate }) => {
         {
           name: 'Total Comments',
           value: formatNumber(totalComments),
-          change: totalComments > 0 ? 'Active Discussion' : 'No Comments',
-          changeType: totalComments > 0 ? 'increase' : 'neutral',
+          change: totalComments > 0 ? `${(totalComments/mediaCount || 0).toFixed(1)} avg per post` : 'No Comments',
+          changeType: 'neutral',
           icon: ChatBubbleLeftRightIcon,
           color: 'text-purple-600',
           bgColor: 'bg-purple-50'
@@ -468,6 +467,81 @@ const Dashboard = ({ onNavigate }) => {
 
     // Transform to chart-friendly shape (name, engagement, reach, impressions, views)
     return buckets.map(b => ({ name: b.name, engagement: b.engagement, reach: b.reach || 0, impressions: b.impressions || 0, views: b.views }));
+  };
+
+  const fetchContentStrategy = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/content-strategy');
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          const data = result.data;
+          
+          // Parse strategy content from LLM response
+          const strategyText = data.content_strategy?.strategy || '';
+          const trendingTopics = data.trending_topics?.slice(0, 5) || [];
+          const recommendations = data.recommendations || [];
+          
+          // Extract key information from strategy text
+          const extractedStrategy = parseStrategyText(strategyText, trendingTopics);
+          
+          setContentStrategy({
+            theme: extractedStrategy.theme || data.content_strategy?.niche || "Content Strategy",
+            focus: extractedStrategy.focus || "AI-generated strategy based on current trends",
+            keyTopics: extractedStrategy.keyTopics || trendingTopics.map(t => t.keyword).slice(0, 3),
+            suggestedHashtags: extractedStrategy.hashtags,
+            targetAudience: extractedStrategy.audience || data.content_strategy?.niche || "Target audience",
+            contentPillars: extractedStrategy.pillars,
+            trendingTopics: trendingTopics,
+            recommendations: recommendations,
+            lastUpdated: data.last_updated,
+            fullStrategy: strategyText
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching content strategy:', error);
+      // Keep loading state on error
+    }
+  };
+  
+  const parseStrategyText = (text, trends) => {
+    const result = {
+      theme: null,
+      focus: null,
+      keyTopics: [],
+      hashtags: [],
+      audience: null,
+      pillars: []
+    };
+    
+    // Extract hashtags
+    const hashtagMatches = text.match(/#\w+/g);
+    if (hashtagMatches) {
+      result.hashtags = hashtagMatches.slice(0, 6);
+    }
+    
+    // Extract key topics from trends
+    result.keyTopics = trends.slice(0, 3).map(t => t.keyword);
+    
+    // Extract theme from first line or heading
+    const lines = text.split('\n').filter(line => line.trim());
+    if (lines.length > 0) {
+      result.theme = lines[0].replace(/[*#]/g, '').trim();
+    }
+    
+    // Extract focus/strategy summary
+    const focusMatch = text.match(/strategy[^:]*:?\s*([^\n.]+)/i);
+    if (focusMatch) {
+      result.focus = focusMatch[1].trim();
+    }
+    
+    return result;
+  };
+  
+  const refreshContentStrategy = async () => {
+    setContentStrategy(prev => ({ ...prev, theme: "Refreshing...", focus: "Fetching latest trends..." }));
+    await fetchContentStrategy();
   };
 
   const fetchNextScheduledPost = async () => {
@@ -713,8 +787,11 @@ const Dashboard = ({ onNavigate }) => {
             <SparklesIcon className="w-6 h-6 text-purple-600" />
             <h3 className="text-lg font-semibold text-gray-900">Content Strategy</h3>
           </div>
-          <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
-            Generate New Strategy
+          <button 
+            onClick={refreshContentStrategy}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+          >
+            Refresh Strategy
           </button>
         </div>
 
@@ -723,25 +800,49 @@ const Dashboard = ({ onNavigate }) => {
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-100">
               <h4 className="font-semibold text-gray-900 mb-2">{contentStrategy.theme}</h4>
               <p className="text-gray-700 text-sm mb-3">{contentStrategy.focus}</p>
-              <div className="flex items-center space-x-1 text-sm text-gray-600">
-                <span>Target:</span>
-                <span className="font-medium">{contentStrategy.targetAudience}</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1 text-sm text-gray-600">
+                  <span>Target:</span>
+                  <span className="font-medium">{contentStrategy.targetAudience}</span>
+                </div>
+                {contentStrategy.lastUpdated && (
+                  <span className="text-xs text-gray-500">
+                    Updated: {new Date(contentStrategy.lastUpdated).toLocaleTimeString()}
+                  </span>
+                )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <h5 className="font-medium text-gray-900 mb-2">Key Topics</h5>
+                <h5 className="font-medium text-gray-900 mb-2">Trending Topics</h5>
                 <div className="space-y-1">
-                  {contentStrategy.keyTopics.map((topic, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                      <span className="text-sm text-gray-700">{topic}</span>
+                  {contentStrategy.trendingTopics.slice(0, 5).map((trend, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
+                        <span className="text-sm text-gray-700">{trend.keyword}</span>
+                      </div>
+                      <span className="text-xs text-gray-500">#{trend.rank}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
+              <div>
+                <h5 className="font-medium text-gray-900 mb-2">Recommendations</h5>
+                <div className="space-y-1">
+                  {contentStrategy.recommendations.slice(0, 4).map((rec, index) => (
+                    <div key={index} className="flex items-start space-x-2">
+                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                      <span className="text-xs text-gray-700 leading-relaxed">{rec}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {contentStrategy.suggestedHashtags.length > 0 && (
               <div>
                 <h5 className="font-medium text-gray-900 mb-2">Suggested Hashtags</h5>
                 <div className="flex flex-wrap gap-1">
@@ -752,27 +853,27 @@ const Dashboard = ({ onNavigate }) => {
                   ))}
                 </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div>
-            <h5 className="font-medium text-gray-900 mb-4">Content Pillars</h5>
-            <div className="space-y-3">
-              {contentStrategy.contentPillars.map((pillar, index) => (
-                <div key={index}>
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm text-gray-700">{pillar.pillar}</span>
-                    <span className="text-sm font-medium text-gray-900">{pillar.percentage}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${pillar.percentage}%` }}
-                    ></div>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <h5 className="font-medium text-gray-900 mb-4">Strategy Insights</h5>
+            {contentStrategy.fullStrategy ? (
+              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-700 leading-relaxed max-h-32 overflow-y-auto">
+                {contentStrategy.fullStrategy.split('\n').slice(0, 6).map((line, index) => (
+                  line.trim() && (
+                    <div key={index} className="mb-1">
+                      {line.replace(/[*#]/g, '').trim()}
+                    </div>
+                  )
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <SparklesIcon className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Loading strategy insights...</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

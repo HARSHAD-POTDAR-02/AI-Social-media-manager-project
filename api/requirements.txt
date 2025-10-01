@@ -8,3 +8,5 @@ langchain==0.0.350
 langchain-community==0.0.10
 langchain-groq==0.0.3
 langgraph==0.0.20
+pytrends==4.9.2
+groq==0.4.1
