@@ -533,7 +533,7 @@ const Analytics = () => {
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={performanceData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" stroke="#6b7280" fontSize={12} />
+                <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
                 <YAxis stroke="#6b7280" fontSize={12} />
                 <Tooltip />
                 <Area type="monotone" dataKey="impressions" stackId="1" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.3} />

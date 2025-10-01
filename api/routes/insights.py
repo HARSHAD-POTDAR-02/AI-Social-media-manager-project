@@ -120,8 +120,10 @@ async def get_performance_insights():
         # Process real data by day
         data = []
         for i in range(7):
+            date = datetime.now() - timedelta(days=6-i)
+            day_name = date.strftime('%a')
             day_data = {
-                "date": f"Day {i + 1}",
+                "name": day_name,
                 "engagement": 0,
                 "reach": 0,
                 "views": 0,
