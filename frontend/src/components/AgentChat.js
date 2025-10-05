@@ -14,6 +14,7 @@ const AgentChat = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState(`web-session-${Date.now()}`); // PERSISTENT SESSION ID
 
   const [currentWorkflow, setCurrentWorkflow] = useState(null);
   const [agentQueue, setAgentQueue] = useState([]);
@@ -65,7 +66,7 @@ const AgentChat = () => {
         },
         body: JSON.stringify({
           message: inputMessage,
-          session_id: `web-${Date.now()}`,
+          session_id: sessionId,  // Use persistent session ID
           context_data: {}
         }),
       });

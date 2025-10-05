@@ -61,55 +61,46 @@ class AgentCommunication:
                 
                 # Extract content themes
                 insights.update(AgentCommunication._parse_content_themes(result))
-                
                 # Store full summary
                 insights['analytics_summary'] = result[:500] + '...' if len(result) > 500 else result
                 
         return insights
     
     @staticmethod
+    def extract_strategy_recommendations_from_state(state: Dict[str, Any]) -> Dict[str, Any]:
+        """Extract strategy recommendations from strategy agent's generated content"""
+        generated_content = state.get('generated_content', {})
+        if generated_content.get('type') == 'strategy_consultation':
+            response = generated_content.get('content', '')
+
+            return {
+                'strategy_summary': generated_content.get('strategy_summary', response[:300] + '...' if len(response) > 300 else response),
+                'focus_area': generated_content.get('focus_area', 'General Strategy'),
+                'has_strategy': True,
+                'raw_response': response
+            }
+        return {}
+
+    @staticmethod
     def extract_strategy_recommendations(agent_responses: List[Dict]) -> Dict[str, Any]:
-        """Extract strategy recommendations from strategy agent"""
+        """Extract strategy recommendations from strategy agent responses (fallback method)"""
         recommendations = {}
-        
+
         for response in agent_responses:
             if response.get('agent') == 'strategy':
                 result = response.get('result', '')
-                
+
                 # Extract recommendations
                 recommendations['strategy_summary'] = result[:300] + '...' if len(result) > 300 else result
                 recommendations['has_strategy'] = True
-                
+
                 # Parse specific recommendations
                 if 'focus on' in result.lower():
                     focus_match = re.search(r'focus on ([^.]+)', result.lower())
                     if focus_match:
                         recommendations['focus_area'] = focus_match.group(1).strip()
-                
+
         return recommendations
-    
-    @staticmethod
-    def extract_content_data(agent_responses: List[Dict]) -> Dict[str, Any]:
-        """Extract content from content agent"""
-        content_data = {}
-        
-        for response in agent_responses:
-            if response.get('agent') == 'content':
-                result = response.get('result', '')
-                
-                # Extract generated content
-                if 'generated content:' in result.lower():
-                    content_match = re.search(r'generated content:\s*(.+)', result, re.IGNORECASE | re.DOTALL)
-                    if content_match:
-                        content_data['generated_content'] = content_match.group(1).strip()
-                
-                content_data['content_summary'] = result[:200] + '...' if len(result) > 200 else result
-                content_data['has_content'] = True
-                
-        return content_data
-    
-    @staticmethod
-    def _parse_metrics(text: str) -> Dict[str, Any]:
         """Parse numerical metrics from text"""
         metrics = {}
         

@@ -43,44 +43,43 @@ class StrategyAgent:
             print("[OK] Instagram Analytics Connected for Strategy")
         except Exception as e:
             print(f"[WARN] Instagram Service Error: {e}")
-            self.instagram_service = None
-        
         # Cache for strategy data
         self.cached_data = {}
         self.data_loaded = False
         
         # Strategy-focused system prompt
-        self.system_prompt = """You are an expert social media strategist and content planning specialist with deep knowledge of Instagram marketing.
+        self.system_prompt = """You are a senior social media strategist and creative consultant with 10+ years of experience building successful brands and campaigns.
 
 Your expertise includes:
-- Content strategy development and planning
-- Trend analysis and viral content identification
-- Audience behavior and engagement optimization
-- Competitor analysis and market positioning
-- Brand voice development and consistency
-- Campaign planning and content series design
-- Hashtag strategy and discoverability
-- Posting schedule optimization
-- Performance forecasting and ROI analysis
-- Crisis prevention and brand protection
+- Creative content strategy and campaign development
+- Brand storytelling and audience connection
+- Trend identification and cultural relevance
+- Platform-specific optimization and best practices
+- Growth hacking and viral content creation
+- Community building and engagement strategies
+- Crisis management and brand protection
+- Cross-platform content distribution
+- Influencer partnership strategies
+- Content series and seasonal campaign planning
 
-Your personality:
-- Strategic thinker who sees the big picture
-- Data-driven but creative in approach
-- Conversational and collaborative
-- Proactive in identifying opportunities
-- Focused on actionable recommendations
-- Ask clarifying questions to understand goals
+Your personality and approach:
+- Strategic visionary who thinks creatively and practically
+- Collaborative partner who asks thoughtful questions
+- Proactive problem-solver who anticipates challenges
+- Data-informed but creativity-driven decision maker
+- Conversational and engaging communication style
+- Focus on actionable, implementable recommendations
 
-When providing strategy advice:
-1. Base recommendations on actual performance data when available
-2. Consider current trends and market dynamics
-3. Provide specific, actionable steps
-4. Explain the reasoning behind recommendations
-5. Ask follow-up questions to refine strategy
-6. Think long-term while addressing immediate needs
+When providing strategic advice:
+1. Understand the user's specific goals and challenges first
+2. Provide creative solutions tailored to their situation
+3. Include specific examples and actionable next steps
+4. Explain the reasoning behind recommendations clearly
+5. Suggest creative content ideas and campaign concepts
+6. Ask follow-up questions to refine and improve strategy
+7. Think about long-term brand building, not just short-term metrics
 
-Current Instagram data and performance metrics will be provided for context."""
+Remember: Every brand and situation is unique. Provide personalized, thoughtful recommendations rather than generic templates."""
 
     def get_strategy_data(self):
         """Get comprehensive data for strategy planning"""
@@ -283,81 +282,159 @@ Current Instagram data and performance metrics will be provided for context."""
         """Process strategy requests with AI-powered insights"""
         state['current_agent'] = self.name
         user_request = state.get('user_request', '')
-        
+
         print(f"[STRATEGY] Processing: {user_request}")
-        
+
         # Use new communication system to get previous agent data
         agent_context = AgentCoordinator.prepare_agent_context(state, self.name)
         analytics_data = agent_context.get('analytics_insights', {})
-        
+
         if analytics_data:
             print(f"[STRATEGY] Using analytics insights: engagement_rate={analytics_data.get('engagement_rate', 'N/A')}")
-        
+        else:
+            print("[STRATEGY] No analytics data available - focusing on creative strategy")
+
         # Get strategy data and combine with previous agent insights
         full_data = self.get_strategy_data()
-        strategy_context = self._create_enhanced_context(full_data, analytics_data, user_request)
-        
+
+        # Determine if this request actually needs analytics
+        request_lower = user_request.lower()
+        analytics_keywords = ['analytics', 'performance', 'engagement', 'reach', 'growth', 'metrics', 'data', 'statistics', 'optimize', 'improve']
+        needs_analytics = any(keyword in request_lower for keyword in analytics_keywords)
+
+        print(f"[STRATEGY] Request type: {'analytics_focused' if needs_analytics else 'creative_strategy'}")
+
+        strategy_context = self._create_enhanced_context(full_data, analytics_data if needs_analytics else {}, user_request)
+
         # Generate AI-powered strategy response - NO FALLBACKS, LLM ONLY
         try:
-            response = self._get_strategy_response(user_request, strategy_context)
+            response = self._get_strategy_response(user_request, strategy_context, state)
         except Exception as e:
             print(f"[ERROR] LLM Error: {e}")
             response = f"Unable to generate strategy due to LLM error: {str(e)}. Please try again."
-        
+
         # Add communication metadata
-        AgentCommunication.add_communication_metadata(state, self.name, bool(analytics_data))
-        
+        AgentCommunication.add_communication_metadata(state, self.name, bool(analytics_data) and needs_analytics)
+
         # Update state with strategy results
         state['generated_content'] = {
             'content': response,
             'type': 'strategy_consultation',
             'status': 'completed',
-            'based_on_analytics': bool(analytics_data),
-            'used_previous_agents': list(agent_context.get('previous_agents', {}).keys())
+            'based_on_analytics': needs_analytics and bool(analytics_data),
+            'used_previous_agents': list(agent_context.get('previous_agents', {}).keys()),
+            # Add structured strategy data for other agents
+            'strategy_summary': response[:300] + '...' if len(response) > 300 else response,
+            'focus_area': 'Content Strategy' if 'content' in user_request.lower() else 'General Strategy'
         }
-        
+
         self._add_agent_response(state, 'strategy_planning', response)
         state['final_response'] = response
-        
+
         return state
 
-    def _get_strategy_response(self, user_request: str, strategy_context: str) -> str:
+    def _analyze_request_type(self, user_request: str) -> str:
+        """Analyze the type of strategy request to provide appropriate response"""
+        request_lower = user_request.lower()
+
+        # Content creation/ideas focused
+        content_keywords = ['content', 'ideas', 'posts', 'campaign', 'create', 'generate', 'reel', 'story', 'video']
+        if any(keyword in request_lower for keyword in content_keywords):
+            return 'content_strategy'
+
+        # Analytics/performance focused
+        analytics_keywords = ['analytics', 'performance', 'engagement', 'reach', 'growth', 'metrics', 'data', 'statistics', 'optimize', 'improve']
+        if any(keyword in request_lower for keyword in analytics_keywords):
+            return 'analytics_strategy'
+
+        # Brand/audience focused
+        brand_keywords = ['brand', 'audience', 'target', 'voice', 'community', 'followers']
+        if any(keyword in request_lower for keyword in brand_keywords):
+            return 'brand_strategy'
+
+        # General strategy
+        return 'general_strategy'
+
+    def _get_strategy_response(self, user_request: str, strategy_context: str, state: Dict[str, Any]) -> str:
         """Generate AI-powered strategy response - LLM ONLY"""
         if not self.groq_client:
             raise Exception("GROQ client not available - cannot generate strategy without LLM")
-        
-        # Enhanced system prompt that considers previous analytics
-        focused_prompt = """You are an expert social media strategist. Analyze the provided data and create actionable strategic recommendations.
-        
-If analytics data from previous agents is available, reference specific findings and build strategic recommendations on top of them.
 
-Provide:
-- Data-driven strategic insights
-- Specific actionable recommendations
-- Content strategy based on performance data
-- Growth tactics and next steps
-- Follow-up questions to refine strategy
-        
-Be conversational, specific, and reference the actual data provided."""
-        
+        # Analyze request type for better prompting
+        request_type = self._analyze_request_type(user_request)
+        print(f"[STRATEGY] Request analysis: {request_type}")
+
+        # Different prompts based on request type
+        if request_type == 'content_strategy':
+            focused_prompt = """You are a creative content strategist focused on developing engaging content ideas and campaigns.
+
+Focus on:
+- Creative content concepts and themes
+- Storytelling approaches and narrative arcs
+- Visual content ideas and production tips
+- Campaign series and content calendars
+- Audience engagement strategies
+- Platform-specific content optimization
+
+Provide 3-5 specific content ideas or campaign concepts with detailed execution plans."""
+
+        elif request_type == 'analytics_strategy':
+            focused_prompt = """You are a data-driven performance strategist focused on optimization and growth.
+
+Focus on:
+- Performance analysis and insights
+- Optimization recommendations
+- Growth strategies and tactics
+- A/B testing suggestions
+- Platform algorithm understanding
+- ROI measurement and tracking
+
+Use available analytics data to provide specific, actionable optimization recommendations."""
+
+        elif request_type == 'brand_strategy':
+            focused_prompt = """You are a brand strategist focused on audience development and brand building.
+
+Focus on:
+- Target audience identification and understanding
+- Brand voice and personality development
+- Community building strategies
+- Brand positioning and differentiation
+- Long-term brand growth planning
+- Crisis prevention and reputation management
+
+Ask thoughtful questions to understand their brand goals and challenges."""
+
+        else:  # general_strategy
+            focused_prompt = """You are a comprehensive social media strategist providing well-rounded strategic advice.
+
+Focus on:
+- Overall social media strategy and planning
+- Platform selection and optimization
+- Content mix and posting strategies
+- Growth and engagement tactics
+- Performance monitoring and adjustment
+- Long-term strategic planning
+
+Provide balanced recommendations across content, audience, and performance."""
+
         messages = [
             {
                 "role": "system",
-                "content": f"{focused_prompt}\n\nAvailable Data:\n{strategy_context}"
+                "content": f"{self.system_prompt}\n\n{focused_prompt}\n\nAvailable Data:\n{strategy_context}"
             },
             {
                 "role": "user",
-                "content": user_request
+                "content": f"Request: {user_request}\n\nPlease provide strategic recommendations that directly address this request with specific, actionable advice."
             }
         ]
-        
+
         completion = self.groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="openai/gpt-oss-120b",
             messages=messages,
-            temperature=0.7,
-            max_tokens=1000
+            temperature=0.8,  # Higher creativity for strategy
+            max_tokens=1500  # More space for detailed strategy
         )
-        
+
         return completion.choices[0].message.content.strip()
     
     def _extract_analytics_insights(self, agent_responses: List[Dict]) -> Dict[str, Any]:
@@ -400,24 +477,39 @@ Be conversational, specific, and reference the actual data provided."""
         """Create enhanced context combining strategy data with analytics insights"""
         try:
             insights = strategy_data.get('strategy_insights', {})
-            
-            # Combine strategy data with analytics insights
+
+            # Determine if analytics are actually relevant to this request
+            request_lower = user_request.lower()
+            analytics_keywords = ['analytics', 'performance', 'engagement', 'reach', 'growth', 'metrics', 'data', 'statistics', 'optimize', 'improve']
+
+            needs_analytics = any(keyword in request_lower for keyword in analytics_keywords)
+
+            # Combine strategy data with analytics insights only if relevant
             enhanced_context = {
                 'user_request': user_request,
+                'request_type': 'analytics_focused' if needs_analytics else 'strategy_focused',
                 'strategy_metrics': {
                     'engagement_rate': insights.get('overall_engagement_rate', 0),
                     'avg_engagement': insights.get('avg_engagement_per_post', 0),
                     'best_content_type': insights.get('best_content_type', 'Unknown'),
                     'posting_frequency': insights.get('posting_frequency', 0),
                     'followers': strategy_data.get('account', {}).get('followers_count', 0)
-                },
-                'analytics_insights': analytics_data,
-                'content_gaps': strategy_data.get('content_gaps', [])[:2],
-                'optimization_opportunities': strategy_data.get('optimization_opportunities', [])[:2]
+                }
             }
-            
+
+            # Only include analytics if they're relevant to the request
+            if needs_analytics and analytics_data:
+                enhanced_context['analytics_insights'] = analytics_data
+            else:
+                enhanced_context['analytics_note'] = 'Analytics data available but not directly relevant to this request'
+
+            # Include content gaps and opportunities selectively
+            if needs_analytics:
+                enhanced_context['content_gaps'] = strategy_data.get('content_gaps', [])[:3]
+                enhanced_context['optimization_opportunities'] = strategy_data.get('optimization_opportunities', [])[:3]
+
             return json.dumps(enhanced_context, indent=1)
-            
+
         except Exception as e:
             print(f"[WARN] Enhanced context creation failed: {e}")
             return json.dumps({'error': 'Context creation failed'}, indent=1)

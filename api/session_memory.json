@@ -1,0 +1,852 @@
+{
+  "web-1759680649252": {
+    "session_id": "web-1759680649252",
+    "created_at": "2025-10-05T21:40:49.769564",
+    "last_updated": "2025-10-05T21:40:49.771614",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T21:40:49.769564",
+        "user_input": "Generate 5 reel ideas for summer campaign",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759680764504": {
+    "session_id": "web-1759680764504",
+    "created_at": "2025-10-05T21:42:44.874790",
+    "last_updated": "2025-10-05T21:42:44.876806",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T21:42:44.874790",
+        "user_input": "these are good but can you make another 3 ideas for the same topic ?",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759680867640": {
+    "session_id": "web-1759680867640",
+    "created_at": "2025-10-05T21:44:28.021980",
+    "last_updated": "2025-10-05T21:44:28.037358",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T21:44:28.021980",
+        "user_input": "i didnt say anything abotu fitness i said to just make 3 ideas about the same topic that is the reels ideas for summer thing but give me how to make those video ",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759680910416": {
+    "session_id": "web-1759680910416",
+    "created_at": "2025-10-05T21:45:10.791088",
+    "last_updated": "2025-10-05T21:45:10.793199",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T21:45:10.791088",
+        "user_input": "now make the same but for winter ",
+        "agent_response": "Completed workflow with 2 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759681037209": {
+    "session_id": "web-1759681037209",
+    "created_at": "2025-10-05T21:47:17.570529",
+    "last_updated": "2025-10-05T21:47:17.572043",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T21:47:17.570529",
+        "user_input": "make it shorter its too big right now ",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759681856320": {
+    "session_id": "web-1759681856320",
+    "created_at": "2025-10-05T22:00:56.726984",
+    "last_updated": "2025-10-05T22:00:56.727620",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:00:56.726984",
+        "user_input": "Analyze my Instagram performance and tell me why my engagement dropped 40% last month despite posting daily",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759682055255": {
+    "session_id": "web-1759682055255",
+    "created_at": "2025-10-05T22:04:15.627558",
+    "last_updated": "2025-10-05T22:04:15.629571",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:04:15.627558",
+        "user_input": "Analyze my Instagram performance and tell me why my engagement dropped 40% last month despite posting daily",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759682105062": {
+    "session_id": "web-1759682105062",
+    "created_at": "2025-10-05T22:05:05.076068",
+    "last_updated": "2025-10-05T22:05:05.077061",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:05:05.076068",
+        "user_input": "Compare my content performance metrics between Q3 and Q4 - what optimization strategies should I implement?",
+        "agent_response": "Completed workflow with 2 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759682250901": {
+    "session_id": "web-1759682250901",
+    "created_at": "2025-10-05T22:07:53.808932",
+    "last_updated": "2025-10-05T22:07:53.811451",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:07:53.808932",
+        "user_input": "Design a 30-day content series for a fitness brand launching in winter that builds community engagement",
+        "agent_response": "",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct"
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759682454264": {
+    "session_id": "web-1759682454264",
+    "created_at": "2025-10-05T22:10:54.605971",
+    "last_updated": "2025-10-05T22:10:54.606971",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:10:54.605971",
+        "user_input": "Design a 30-day content series for a fitness brand launching in winter that builds community engagement",
+        "agent_response": "Completed workflow with 3 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759683144593": {
+    "session_id": "web-1759683144593",
+    "created_at": "2025-10-05T22:22:25.100004",
+    "last_updated": "2025-10-05T22:22:25.102516",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:22:25.100004",
+        "user_input": "Generate 5 reel ideas for summer campaign and also make the strategy for them like when to post each reel at what time how to shoot each one of them too",
+        "agent_response": "Completed workflow with 2 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759683246077": {
+    "session_id": "web-1759683246077",
+    "created_at": "2025-10-05T22:24:06.389122",
+    "last_updated": "2025-10-05T22:24:06.390866",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:24:06.389122",
+        "user_input": "first make the reel ideas ",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759683297973": {
+    "session_id": "web-1759683297973",
+    "created_at": "2025-10-05T22:24:57.981151",
+    "last_updated": "2025-10-05T22:24:57.983840",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:24:57.981151",
+        "user_input": "now make strategy for these ideas like how to shoot , when to upload , at which social media to post",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759684121208": {
+    "session_id": "web-1759684121208",
+    "created_at": "2025-10-05T22:38:41.514069",
+    "last_updated": "2025-10-05T22:38:41.517118",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:38:41.514069",
+        "user_input": "Generate 5 reel ideas for summer campaign",
+        "agent_response": "",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct"
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759684397485": {
+    "session_id": "web-1759684397485",
+    "created_at": "2025-10-05T22:43:17.969564",
+    "last_updated": "2025-10-05T22:43:17.970883",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:43:17.969564",
+        "user_input": "Generate 5 reel ideas for summer campaign",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759684484054": {
+    "session_id": "web-1759684484054",
+    "created_at": "2025-10-05T22:44:44.376136",
+    "last_updated": "2025-10-05T22:44:44.379073",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:44:44.376136",
+        "user_input": "now tell me how do i shoot each and every idea like first tell me this is the idea and then how to shoot it properly",
+        "agent_response": "Completed workflow with 2 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759684699471": {
+    "session_id": "web-1759684699471",
+    "created_at": "2025-10-05T22:48:19.792281",
+    "last_updated": "2025-10-05T22:48:19.797310",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:48:19.792281",
+        "user_input": "Generate 5 reel ideas for summer campaign",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759684731119": {
+    "session_id": "web-1759684731119",
+    "created_at": "2025-10-05T22:48:53.193919",
+    "last_updated": "2025-10-05T22:48:53.197495",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:48:53.193919",
+        "user_input": "now tell me when to post each idea that you gave me and how to shoot reel for each idea ",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759684770738": {
+    "session_id": "web-1759684770738",
+    "created_at": "2025-10-05T22:49:30.746101",
+    "last_updated": "2025-10-05T22:49:30.749608",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:49:30.746101",
+        "user_input": "Create a content strategy for Q2",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685201042": {
+    "session_id": "web-1759685201042",
+    "created_at": "2025-10-05T22:56:46.272862",
+    "last_updated": "2025-10-05T22:56:46.275865",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:56:46.272862",
+        "user_input": "hi",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685213841": {
+    "session_id": "web-1759685213841",
+    "created_at": "2025-10-05T22:56:53.847922",
+    "last_updated": "2025-10-05T22:56:53.853505",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:56:53.847922",
+        "user_input": "my name is harshad ",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685220855": {
+    "session_id": "web-1759685220855",
+    "created_at": "2025-10-05T22:57:01.180277",
+    "last_updated": "2025-10-05T22:57:01.185178",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T22:57:01.180277",
+        "user_input": "whats my name ",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685496215": {
+    "session_id": "web-1759685496215",
+    "created_at": "2025-10-05T23:01:50.382168",
+    "last_updated": "2025-10-05T23:01:50.385916",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:01:50.382168",
+        "user_input": "hi",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685522542": {
+    "session_id": "web-1759685522542",
+    "created_at": "2025-10-05T23:02:02.854919",
+    "last_updated": "2025-10-05T23:02:02.858934",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:02:02.854919",
+        "user_input": "my name is harshad",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685527780": {
+    "session_id": "web-1759685527780",
+    "created_at": "2025-10-05T23:02:07.787713",
+    "last_updated": "2025-10-05T23:02:07.792992",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:02:07.787713",
+        "user_input": "what is my name",
+        "agent_response": "Completed workflow with 1 agent responses",
+        "agent_name": "user",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "user_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685873289": {
+    "session_id": "web-1759685873289",
+    "created_at": "2025-10-05T23:08:01.410179",
+    "last_updated": "2025-10-05T23:08:02.067558",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:08:02.061813",
+        "user_input": "hi",
+        "agent_response": "\ud83d\ude0a Hi! It's great to chat with you. How's your day going so far? Is there something on your mind that you'd like to talk about, or are you just looking for some casual conversation? I'm here to listen and help if I can. What's your name, by the way?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "general_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685898483": {
+    "session_id": "web-1759685898483",
+    "created_at": "2025-10-05T23:08:18.796202",
+    "last_updated": "2025-10-05T23:08:19.451199",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:08:19.446367",
+        "user_input": "my name is harshad",
+        "agent_response": "Nice to meet you, Harshad! \ud83d\ude0a How's your day going so far? Do you have any fun plans or just the usual routine?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "general_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759685906230": {
+    "session_id": "web-1759685906230",
+    "created_at": "2025-10-05T23:08:26.235097",
+    "last_updated": "2025-10-05T23:08:26.966479",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:08:26.961750",
+        "user_input": "what is my name?",
+        "agent_response": "I'm happy to chat with you! \ud83d\ude0a Unfortunately, I don't know your name yet, since this is the beginning of our conversation. Would you like to share your name with me, or would you rather we get to know each other a bit before exchanging names? What brings you here today? \ud83e\udd14",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "general_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759686145624": {
+    "session_id": "web-1759686145624",
+    "created_at": "2025-10-05T23:12:37.366905",
+    "last_updated": "2025-10-05T23:12:38.152814",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:12:38.146482",
+        "user_input": "hi",
+        "agent_response": "\ud83d\ude0a Hi! It's great to chat with you. Is there something on your mind that you'd like to talk about, or are you just looking for some friendly conversation? I'm all ears!",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "general_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759686167932": {
+    "session_id": "web-1759686167932",
+    "created_at": "2025-10-05T23:12:48.252318",
+    "last_updated": "2025-10-05T23:12:48.894298",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:12:48.887160",
+        "user_input": "my name is harshad",
+        "agent_response": "Nice to meet you, Harshad! \ud83d\ude0a How's your day going so far? Do you have any topics you'd like to chat about or questions you'd like some help with? I'm all ears!",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "general_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-1759686180296": {
+    "session_id": "web-1759686180296",
+    "created_at": "2025-10-05T23:13:00.303774",
+    "last_updated": "2025-10-05T23:13:01.028162",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:13:01.025897",
+        "user_input": "what is my name",
+        "agent_response": "I'm happy to chat with you! \ud83d\ude0a Unfortunately, I don't have any information about you yet, including your name. We just started talking, and I don't have any prior context. Would you like to share your name with me, or would you rather we get to know each other a bit before exchanging that info? \ud83e\udd14 What's on your mind, and how can I help you today?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "general_interactions": 1
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  },
+  "web-session-1759686378219": {
+    "session_id": "web-session-1759686378219",
+    "created_at": "2025-10-05T23:16:31.710070",
+    "last_updated": "2025-10-05T23:18:04.619918",
+    "conversation_history": [
+      {
+        "timestamp": "2025-10-05T23:16:32.378567",
+        "user_input": "hi",
+        "agent_response": "\ud83d\ude0a Hi! It's great to chat with you. Is there something on your mind that you'd like to talk about, or are you just looking for some friendly conversation? I'm here to listen and help with any questions or topics you'd like to discuss. What's your day been like so far?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      },
+      {
+        "timestamp": "2025-10-05T23:16:43.836479",
+        "user_input": "my name is harshad",
+        "agent_response": "\ud83d\ude0a Ah, nice to know your name is Harshad! I'm glad we got to start this conversation. You were just about to share something or maybe just chat, I assume? What's on your mind, Harshad? Want to talk about something specific or just see where our conversation takes us? \ud83e\udd17",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      },
+      {
+        "timestamp": "2025-10-05T23:16:57.994237",
+        "user_input": "what is my name ",
+        "agent_response": "\ud83d\ude0a Ah, you're asking about your name again? Don't worry, I remember! Your name is Harshad. We actually started our conversation with you sharing that with me. How's it going, Harshad? What's on your mind today?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      },
+      {
+        "timestamp": "2025-10-05T23:17:29.969447",
+        "user_input": "make some content for me for the upcoming winter arc thing",
+        "agent_response": "Hey Harshad! \ud83d\udc4b Winter is coming! \u2744\ufe0f Get ready to cozy up with these 5 engaging content ideas to get you in the mood for the season! \ud83c\udf84\n\nReel Ideas:\n\n1. Winter Morning Boost \u2615\ufe0f\nBoost your morning with a cozy routine! Share your go-to coffee recipe, favorite winter playlist, or skincare tips to start the day feeling refreshed. What's your morning pick-me-up? \ud83e\udd14\n\n2. Cozy Winter Night \ud83c\udf7f\nInvite followers to a cozy night in! Share your favorite movie/TV show, comforting recipe, or relaxing bedtime routine. What's your go-to winter night in activity? \ud83c\udf6b\n\n3. Winter Bucket List \ud83d\udcdd\nShare 3 things you want to do this winter and ask followers to share theirs in the comments. What's on your winter bucket list? \ud83d\udcdd\n\n4. Winter Self-Care \ud83e\uddd6\u200d\u2640\ufe0f\nShare top winter self-care tips, from skincare routines to mindfulness exercises. How do you prioritize self-care during the winter months? \ud83e\uddd8\u200d\u2640\ufe0f\n\n5. Winter Decor Inspiration \ud83c\udfe0\nGive followers a tour of your winter-inspired decor! Share favorite decorative pieces, cozy textiles, or festive touches. What's your favorite winter decor trend? \ud83c\udf84\n\nTips for Engagement:\n\nLet's get the conversation started! Ask your followers to share their favorite winter tradition in the comments below using #WinterShare. Respond to their comments and keep the engagement going! \ud83d\udcac\nUse relevant winter-themed hashtags like #WinterVibes, #CozyContent, #SnowMuchFun, #WinterWonderland, and #CozyNights to reach a wider audience.\n\nHashtags: #WinterVibes #CozyContent #SnowMuchFun #WinterWonderland #CozyNights #WinterShare #HarshadWinters",
+        "agent_name": "content",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      },
+      {
+        "timestamp": "2025-10-05T23:18:04.616695",
+        "user_input": "give me a plan how to shoot each idea ",
+        "agent_response": "Hey Harshad! \ud83d\udc4b Winter is here! \u2744\ufe0f Did you know that 75% of people experience a creative slump during the winter months? Let's shake things up with these 5 engaging Reel ideas to get you in the mood for the season! \ud83c\udf84\n\n### Introduction\nAs we dive into the winter season, I want to help you create content that resonates with your audience and keeps them engaged. Here are 5 Reel ideas tailored to your interests, complete with storyboards, shot lists, scripts, lighting and framing notes, and on-set assets.\n\n### Reel Idea 1: Winter Morning Boost \u2615\ufe0f\n\nConcept: Start your day off right with a warm cup of coffee and a refreshing winter routine.\n\nStoryboard:\n\n1. (0s-3s) Close-up of a steaming cup of coffee \u2615\ufe0f\n2. (4s-6s) Harshad waking up, stretching, and smiling \ud83d\ude0a\n3. (7s-10s) Quick cuts of Harshad's winter morning routine (brushing teeth, washing face, etc.)\n4. (11s-15s) Harshad sipping coffee and enjoying the winter scenery \u2744\ufe0f\n\nScript:\n\"Rise and shine, Harshad! \u2615\ufe0f What's your go-to morning pick-me-up? Share your favorite winter morning routine in the comments below and tag a friend who loves winter as much as you do! \ud83d\udc6b\"\n\nLighting and Framing:\n\nNatural light for the morning routine shots\nSoft, warm lighting for the coffee and scenery shots\nFraming: Close-ups for the coffee and Harshad's face, wide shots for the scenery\n\nOn-set Assets:\n\nA steaming cup of coffee\nA cozy winter background (e.g., snowflakes, pinecones)\n\n### Reel Idea 2: Winter Fashion Haul \ud83d\udecd\ufe0f\n\nConcept: Show off your favorite winter fashion pieces and get ready for the season!\n\nStoryboard:\n\n1. (0s-3s) Harshad holding up a winter outfit \ud83d\udcf8\n2. (4s-6s) Quick cuts of Harshad modeling different winter outfits\n3. (7s-10s) Close-ups of the outfits and accessories\n4. (11s-15s) Harshad striking a pose and smiling \ud83d\ude0a\n\nScript:\n\"Get ready to slay the winter fashion game, Harshad! \ud83d\udecd\ufe0f Share your favorite winter fashion pieces and use #WinterFashionHaul! \ud83d\udcf8 Tag a friend who loves fashion as much as you do! \ud83d\udc6b\"\n\nLighting and Framing:\n\nBright and bold lighting for the fashion shots\nFraming: Close-ups for the outfits and accessories, full-body shots for Harshad modeling\n\nOn-set Assets:\n\nWinter outfits and accessories (e.g., hats, scarves, gloves)\n\n### Reel Idea 3: Winter Bucket List \ud83d\udcdd\n\nConcept: Share your winter bucket list and get inspired by Harshad's!\n\nStoryboard:\n\n1. (0s-3s) Harshad holding up a notebook and pen \ud83d\udcdd\n2. (4s-6s) Quick cuts of Harshad writing down winter bucket list items\n3. (7s-10s) Close-ups of the bucket list items\n4. (11s-15s) Harshad sharing the list and smiling \ud83d\ude0a\n\nScript:\n\"What's on your winter bucket list, Harshad? \ud83d\udcdd Share with me and let's get inspired! \ud83d\udcac Use #WinterBucketList and tag a friend who loves winter as much as you do! \ud83d\udc6b\"\n\nLighting and Framing:\n\nSoft, cozy lighting for the notebook and pen shots\nFraming: Close-ups for the bucket list items, medium shots for Harshad sharing\n\nOn-set Assets:\n\nA notebook and pen\nA cozy winter background (e",
+        "agent_name": "content",
+        "metadata": {
+          "workflow_type": "sequential",
+          "completed": true,
+          "agent_count": 2
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "general_interactions": 3,
+      "content_interactions": 2
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
+  }
+}

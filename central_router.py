@@ -29,7 +29,8 @@ class CentralRouter:
             "listening": "Social listening, brand mentions monitoring, industry intelligence, influencer tracking",
             "analytics": "Performance analysis, ROI measurement, predictive analytics, reporting",
             "crisis": "Crisis management, issue detection, response coordination, reputation recovery",
-            "compliance": "Brand safety, content moderation, legal compliance, risk assessment"
+            "compliance": "Brand safety, content moderation, legal compliance, risk assessment",
+            "general": "General conversation, casual chat, questions, explanations, help with any topic"
         }
         
     def route(self, user_request: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -94,6 +95,7 @@ class CentralRouter:
         - analytics: Performance analysis, ROI measurement, predictive analytics, reporting
         - crisis: Crisis management, issue detection, response coordination, reputation recovery
         - compliance: Brand safety, content moderation, legal compliance, risk assessment
+        - general: General conversation, casual chat, questions, explanations, help with any topic
         
         CRITICAL: For complex multi-step requests, you MUST identify ALL required agents in the correct sequence.
         

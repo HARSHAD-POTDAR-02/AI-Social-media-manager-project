@@ -11,19 +11,19 @@ from datetime import datetime
 import os
 from dotenv import load_dotenv
 
+# Import session memory manager for centralized memory storage
+from session_memory import get_session_memory_manager
+
 # Load environment variables from .env file
 load_dotenv()
 
 # Import all agent modules
-from agents.orchestrator_agent import OrchestratorAgent
 from agents.strategy_agent import StrategyAgent
 from agents.content_agent import ContentAgent
 from agents.publishing_agent import PublishingAgent
-from agents.community_agent import CommunityAgent
-from agents.listening_agent import ListeningAgent
 from agents.analytics_agent import AnalyticsAgent
-from agents.crisis_agent import CrisisAgent
 from agents.compliance_agent import ComplianceAgent
+from agents.general_agent import GeneralAgent
 from central_router import CentralRouter
 
 # Define the state structure for the graph
@@ -36,10 +36,11 @@ class GraphState(TypedDict):
     current_agent: str
     workflow_type: Literal["sequential", "parallel", "direct"]
     
-    # Task and context management
+    # Session and context management
     task_decomposition: List[Dict[str, Any]]
     parallel_tasks: List[Dict[str, Any]]
     context_data: Dict[str, Any]
+    session_context: Dict[str, Any]  # New field for session memory context
     agent_queue: List[str]       # Queue of agents to process in order
     
     # Content and strategy fields
@@ -85,16 +86,16 @@ class SocialMediaManagerGraph:
         # Initialize the central router
         self.router = CentralRouter(groq_api_key)
         
+        # Initialize session memory manager
+        self.session_memory = get_session_memory_manager()
+        
         # Initialize all agents
-        self.orchestrator = OrchestratorAgent()
         self.strategy_agent = StrategyAgent(self.groq_api_key)  # Pass API key for enhanced functionality
         self.content_agent = ContentAgent()
         self.publishing_agent = PublishingAgent()
-        self.community_agent = CommunityAgent()
-        self.listening_agent = ListeningAgent()
         self.analytics_agent = AnalyticsAgent(self.groq_api_key)  # Pass API key
-        self.crisis_agent = CrisisAgent()
         self.compliance_agent = ComplianceAgent()
+        self.general_agent = GeneralAgent(self.groq_api_key)  # General conversational agent
         
         # Create the state graph
         self.workflow = StateGraph(GraphState)
@@ -120,13 +121,9 @@ class SocialMediaManagerGraph:
         self.workflow.add_node("strategy", self.strategy_agent.process)
         self.workflow.add_node("content", self.content_agent.process)
         self.workflow.add_node("publishing", self.publishing_agent.process)
-        self.workflow.add_node("community", self.community_agent.process)
-        self.workflow.add_node("listening", self.listening_agent.process)
         self.workflow.add_node("analytics", self.analytics_agent.process)
-        
-        # Specialized agents
-        self.workflow.add_node("crisis", self.crisis_agent.process)
         self.workflow.add_node("compliance", self.compliance_agent.process)
+        self.workflow.add_node("general", self.general_agent.process)  # General conversational agent
         
         # Human-in-the-loop nodes
         self.workflow.add_node("human_review", self.human_review_checkpoint)
@@ -154,11 +151,9 @@ class SocialMediaManagerGraph:
                 "strategy": "strategy",
                 "content": "content",
                 "publishing": "publishing",
-                "community": "community",
-                "listening": "listening",
                 "analytics": "analytics",
-                "crisis": "crisis",
-                "compliance": "compliance"
+                "compliance": "compliance",
+                "general": "general"
             }
         )
         
@@ -171,11 +166,9 @@ class SocialMediaManagerGraph:
             "strategy": "strategy",
             "content": "content",
             "publishing": "publishing",
-            "community": "community",
-            "listening": "listening",
             "analytics": "analytics",
-            "crisis": "crisis",
             "compliance": "compliance",
+            "general": "general",
         }
         
         # Content agent uses standard routing now
@@ -183,24 +176,11 @@ class SocialMediaManagerGraph:
         
         # Use unified routing for other agents
         for node in [
-            "strategy","publishing","listening","analytics",
-            "compliance","community"
+            "strategy","publishing","analytics","compliance","general"
         ]:
             self.workflow.add_conditional_edges(node, self.next_step_router, post_map)
         
         # Remove special routing for analytics and community - use unified routing instead
-        
-        # Crisis management workflows
-        self.workflow.add_conditional_edges(
-            "crisis",
-            self.assess_crisis_level,
-            {
-                "low": "prepare_response",
-                "high": "human_review",
-                "critical": "human_review",
-                "error": "error_handler"
-            }
-        )
         
 
         
@@ -233,6 +213,51 @@ class SocialMediaManagerGraph:
         state['workflow_step'] = 0
         state['retry_count'] = 0
         state['agent_responses'] = []
+        
+        # Get session memory for context
+        session_id = state.get('session_id', f"session_{datetime.now().timestamp()}")
+        state['session_id'] = session_id  # Ensure session_id is in state
+        
+        print(f"[SESSION] ===== SESSION MEMORY DEBUG =====")
+        print(f"[SESSION] Session ID: {session_id}")
+        
+        session_memory = self.session_memory.get_session_memory(session_id)
+        
+        # DO NOT add conversation entry here - will add with actual response later
+        # This prevents empty agent_response entries in conversation history
+        
+        # Get conversation context for agents (only completed exchanges)
+        conversation_context = self.session_memory.get_conversation_context(session_id)
+        
+        # Filter conversation history to only include completed exchanges (those with agent responses)
+        all_history = session_memory.get('conversation_history', [])
+        completed_history = [
+            entry for entry in all_history
+            if entry.get('agent_response') and entry.get('agent_response') != ""
+        ]
+        
+        print(f"[SESSION] Total history entries: {len(all_history)}")
+        print(f"[SESSION] Completed history entries: {len(completed_history)}")
+        
+        if completed_history:
+            print(f"[SESSION] Last completed exchange:")
+            last = completed_history[-1]
+            print(f"[SESSION]   User: {last.get('user_input', '')[:50]}...")
+            print(f"[SESSION]   Agent: {last.get('agent_response', '')[:50]}...")
+        else:
+            print(f"[SESSION] No completed conversation history found!")
+        
+        # Add session memory context to state
+        if 'session_context' not in state:
+            state['session_context'] = {}
+        
+        state['session_context'].update({
+            'conversation_history': completed_history,  # Only completed exchanges
+            'key_topics': session_memory.get('key_topics', []),
+            'important_facts': session_memory.get('important_facts', []),
+            'user_preferences': session_memory.get('user_preferences', {}),
+            'recent_context': conversation_context
+        })
         
         # Do routing immediately in user input processing
         routing_decision = self.router.route(state['user_request'], state.get('context_data', {}))
@@ -399,17 +424,100 @@ class SocialMediaManagerGraph:
     
     def prepare_final_response(self, state: GraphState) -> GraphState:
         """
-        Prepare the final response for the user
+        Prepare the final response for the user and save to session memory
         """
         print("Preparing final response")
         responses = state.get('agent_responses', [])
         state['final_response'] = f"Completed workflow with {len(responses)} agent responses"
+        
+        # Get the actual agent response content
+        user_request = state.get('user_request', '')
+        session_id = state.get('session_id', '')
+        
+        # Extract the actual content from generated_content or agent_responses
+        actual_response = ""
+        if state.get('generated_content'):
+            actual_response = state['generated_content'].get('content', '')
+        elif responses:
+            # Get the last agent's actual response
+            actual_response = responses[-1].get('result', '')
+        
+        # Save complete conversation entry to session memory
+        if session_id and user_request and actual_response:
+            print(f"[SESSION] ===== SAVING CONVERSATION =====")
+            print(f"[SESSION] Session ID: {session_id}")
+            print(f"[SESSION] User request: {user_request[:100]}...")
+            print(f"[SESSION] Agent response: {actual_response[:100]}...")
+            print(f"[SESSION] Agent name: {state.get('current_agent', 'unknown')}")
+            
+            # Add complete conversation entry (user input + agent response)
+            self.session_memory.add_conversation_entry(
+                session_id=session_id,
+                user_input=user_request,
+                agent_response=actual_response,
+                agent_name=state.get('current_agent', 'unknown'),
+                metadata={
+                    'workflow_type': state.get('workflow_type', 'direct'),
+                    'completed': True,
+                    'agent_count': len(responses)
+                }
+            )
+            
+            # Verify it was saved
+            verify_memory = self.session_memory.get_session_memory(session_id)
+            verify_history = verify_memory.get('conversation_history', [])
+            print(f"[SESSION] ✅ Conversation saved! Total entries now: {len(verify_history)}")
+            if verify_history:
+                print(f"[SESSION] Last saved entry: '{verify_history[-1].get('user_input', '')[:50]}...'")
+        else:
+            print(f"[SESSION] ❌ WARNING: Could not save conversation!")
+            print(f"[SESSION]    session_id={bool(session_id)}, request={bool(user_request)}, response={bool(actual_response)}")
+        
         return state
     
+    def update_agent_response_in_memory(self, state: GraphState, agent_name: str, response: str, metadata: Dict[str, Any] = None):
+        """
+        Update session memory with agent response
+
+        Args:
+            state: Current graph state
+            agent_name: Name of the agent that responded
+            response: Agent's response text
+            metadata: Additional metadata about the response
+        """
+        session_id = state.get('session_id', '')
+        if session_id:
+            # Update the conversation history with the agent response
+            session_memory = self.session_memory.get_session_memory(session_id)
+            if session_memory['conversation_history']:
+                # Find the user input entry and update it with agent response
+                for entry in reversed(session_memory['conversation_history']):
+                    if entry['agent_name'] == "user" and entry['agent_response'] == "":
+                        entry['agent_response'] = response
+                        entry['metadata'].update(metadata or {})
+                        entry['metadata']['responding_agent'] = agent_name
+                        break
+            
+            self.session_memory._save_memory_to_file()
+    
+    def get_session_context_for_agent(self, state: GraphState, agent_name: str) -> Dict[str, Any]:
+        """
+        Get session context specifically formatted for an agent
+
+        Args:
+            state: Current graph state
+            agent_name: Name of the agent requesting context
+
+        Returns:
+            Dictionary containing agent-specific session context
+        """
+        session_id = state.get('session_id', '')
+        if not session_id:
+            return {}
+        
+        return self.session_memory.get_agent_context(session_id, agent_name)
+    
     def complete_workflow(self, state: GraphState) -> GraphState:
-        """
-        Complete the workflow and return final state
-        """
         final_response = state.get('final_response', 'No response generated')
         print(f"\n{'='*60}")
         print("🎯 WORKFLOW COMPLETED")
@@ -430,6 +538,7 @@ class SocialMediaManagerGraph:
             "task_decomposition": [],
             "parallel_tasks": [],
             "context_data": context_data or {},
+            "session_context": {},  # Initialize session context
             "agent_queue": [],
             "workflow_step": 0,
             "approval_needed": False,

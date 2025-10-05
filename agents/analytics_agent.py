@@ -216,7 +216,7 @@ Current data context will be provided with each conversation."""
         
         try:
             completion = self.groq_client.chat.completions.create(
-                model="llama-3.1-8b-instant",
+                model="meta-llama/llama-4-scout-17b-16e-instruct",
                 messages=messages,
                 temperature=0.7,
                 max_tokens=1000
