@@ -194,18 +194,30 @@ class AgentCommunication:
         return themes
     
     @staticmethod
-    def extract_content_data(agent_responses: List[Dict]) -> Dict[str, Any]:
+    def extract_content_data(agent_responses: List[Dict], state: Dict[str, Any] = None) -> Dict[str, Any]:
         """Extract content data from content agent"""
         content_data = {}
-        
+
         for response in agent_responses:
             if response.get('agent') == 'content':
                 result = response.get('result', '')
-                
+
+                # First try to get the actual generated content from state
+                if state and state.get('generated_content'):
+                    generated_content = state['generated_content']
+                    if generated_content.get('content'):
+                        content_data['generated_content'] = generated_content['content']
+                        content_data['has_content'] = True
+                        content_data['content_length'] = len(generated_content['content'])
+                        content_data['reflection_count'] = generated_content.get('reflection_count', 0)
+                        content_data['image_path'] = generated_content.get('image_path')
+                        return content_data
+
+                # Fallback to result field if no state content
                 content_data['generated_content'] = result
                 content_data['has_content'] = True
                 content_data['content_length'] = len(result)
-                
+
         return content_data
     
     @staticmethod
@@ -303,7 +315,8 @@ class AgentCoordinator:
                 )
             elif current_agent == 'publishing':
                 enhanced_context['content_data'] = AgentCommunication.extract_content_data(
-                    state.get('agent_responses', [])
+                    state.get('agent_responses', []),
+                    state  # Pass state to get actual generated content
                 )
         
         return enhanced_context

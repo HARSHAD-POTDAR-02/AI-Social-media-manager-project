@@ -95,7 +95,6 @@ const AgentChat = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to send message');
       }
 
       const data = await response.json();
@@ -104,7 +103,6 @@ const AgentChat = () => {
         setSessionId(data.session_id);
         try { localStorage.setItem('agentChatSessionId', data.session_id); } catch (e) {}
       }
-      
       setCurrentWorkflow(data.workflow_type);
       setAgentQueue(data.agent_queue || []);
       setCompletedAgents(data.agent_responses?.map(r => r.agent) || []);
@@ -112,7 +110,7 @@ const AgentChat = () => {
       const botMessage = {
         id: Date.now() + 1,
         type: 'bot',
-        content: data.final_response,
+        content: data.generated_content?.content || data.final_response,
         timestamp: new Date(),
         workflow_type: data.workflow_type,
         agent_responses: data.agent_responses || [],
