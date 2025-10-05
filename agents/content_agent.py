@@ -244,17 +244,29 @@ Remember: Your response should be a direct answer to the user's request, nothing
         # Start with basic brief
         brief = self._create_content_brief(state)
 
-        # Add strategy insights
+        # Add FULL strategy insights - this is critical for sequential workflows
         if strategy_data:
-            brief += "\n\nStrategy Recommendations:"
-            if strategy_data.get('focus_area'):
-                brief += f"\n- Focus on: {strategy_data['focus_area']}"
-            if strategy_data.get('strategy_summary'):
-                brief += f"\n- Key insight: {strategy_data['strategy_summary'][:100]}..."
+            brief += "\n\n" + "="*60
+            brief += "\n🎯 STRATEGY AGENT RECOMMENDATIONS (Use these as your foundation):"
+            brief += "\n" + "="*60
+            
+            # Include the FULL strategy response, not just a summary
+            if strategy_data.get('full_strategy'):
+                brief += f"\n\n{strategy_data['full_strategy']}"
+                print(f"[CONTENT] Using FULL strategy ({len(strategy_data['full_strategy'])} chars) from previous agent")
+            elif strategy_data.get('strategy_summary'):
+                # Fallback to summary if full not available
+                brief += f"\n\n{strategy_data['strategy_summary']}"
+                print(f"[CONTENT] Using strategy summary (full not available)")
+            
+            brief += "\n\n" + "="*60
+            brief += "\n⚠️ IMPORTANT: Use the strategy recommendations above to guide your content creation."
+            brief += "\n   Build on the ideas, themes, and concepts suggested by the strategy agent."
+            brief += "\n" + "="*60
 
         # Add analytics insights
         if analytics_data:
-            brief += "\n\nAnalytics Insights:"
+            brief += "\n\n📊 Analytics Insights:"
             if analytics_data.get('top_theme'):
                 brief += f"\n- Best performing theme: {analytics_data['top_theme']}"
             if analytics_data.get('engagement_rate'):
@@ -362,6 +374,22 @@ Remember: Your response should be a direct answer to the user's request, nothing
 
         print(f"[CONTENT] Session context: {len(conversation_history)} previous interactions")
 
+        # Fallback: if no in-run strategy data, pull latest strategy from session memory history
+        if (not strategy_data or not strategy_data.get('full_strategy')) and conversation_history:
+            last_strategy_text = None
+            for entry in reversed(conversation_history):
+                if entry.get('agent_name') == 'strategy' and entry.get('agent_response'):
+                    last_strategy_text = entry.get('agent_response')
+                    break
+            if last_strategy_text:
+                strategy_data = {
+                    'full_strategy': last_strategy_text,
+                    'strategy_summary': last_strategy_text[:300] + '...' if len(last_strategy_text) > 300 else last_strategy_text,
+                    'has_strategy': True,
+                    'source': 'session_memory'
+                }
+                print(f"[CONTENT] Using strategy from session memory ({len(last_strategy_text)} chars)")
+
         # Build conversation context for the AI prompt
         context_prompt = ""
         if conversation_history:
@@ -420,7 +448,8 @@ Remember: Your response should be a direct answer to the user's request, nothing
             'status': 'completed',
             'used_strategy_data': bool(strategy_data),
             'used_analytics_data': bool(analytics_data),
-            'used_session_context': bool(session_context)
+            'used_session_context': bool(session_context),
+            'used_strategy_from_session': bool(strategy_data and strategy_data.get('source') == 'session_memory')
         }
 
         if image_url:

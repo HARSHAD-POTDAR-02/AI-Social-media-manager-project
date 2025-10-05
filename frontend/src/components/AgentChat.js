@@ -14,7 +14,18 @@ const AgentChat = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState(`web-session-${Date.now()}`); // PERSISTENT SESSION ID
+  const [sessionId, setSessionId] = useState(() => {
+    // Load persistent session ID from localStorage or create new one
+    try {
+      const existing = localStorage.getItem('agentChatSessionId');
+      if (existing) return existing;
+    } catch (e) {
+      // ignore storage errors
+    }
+    const newId = `web-session-${Date.now()}`;
+    try { localStorage.setItem('agentChatSessionId', newId); } catch (e) {}
+    return newId;
+  });
 
   const [currentWorkflow, setCurrentWorkflow] = useState(null);
   const [agentQueue, setAgentQueue] = useState([]);
@@ -39,6 +50,18 @@ const AgentChat = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Persist sessionId when it changes (e.g., if backend returns a canonical ID)
+  useEffect(() => {
+    try { localStorage.setItem('agentChatSessionId', sessionId); } catch (e) {}
+  }, [sessionId]);
+
+  const resetSession = () => {
+    const newId = `web-session-${Date.now()}`;
+    setSessionId(newId);
+    try { localStorage.setItem('agentChatSessionId', newId); } catch (e) {}
+    setMessages([]);
+  };
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -76,6 +99,11 @@ const AgentChat = () => {
       }
 
       const data = await response.json();
+      // Ensure we stay in sync with server-side session
+      if (data.session_id && data.session_id !== sessionId) {
+        setSessionId(data.session_id);
+        try { localStorage.setItem('agentChatSessionId', data.session_id); } catch (e) {}
+      }
       
       setCurrentWorkflow(data.workflow_type);
       setAgentQueue(data.agent_queue || []);
@@ -261,18 +289,22 @@ const AgentChat = () => {
           </div>
         </div>
       </div>
-
       {/* Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Chat Header */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-lg bg-gray-500 flex items-center justify-center text-white">
+          <div className="flex flex-row items-center space-x-4">
+            <div className="w-10 h-10 rounded-lg bg-gray-500 flex items-center justify-center text-white flex-shrink-0">
               🤖
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="font-semibold text-gray-900">All Agents</h3>
-              <p className="text-sm text-gray-500">Let AI decide the best agent</p>
+              <button
+                onClick={resetSession}
+                className="text-sm text-blue-600 hover:text-blue-800 underline"
+              >
+                New Chat
+              </button>
             </div>
           </div>
         </div>
@@ -281,7 +313,7 @@ const AgentChat = () => {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {/* Welcome Message */}
           {messages.length === 0 && (
-            <div className="text-center py-12">
+            <div className="text-center">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CpuChipIcon className="w-8 h-8 text-white" />
               </div>

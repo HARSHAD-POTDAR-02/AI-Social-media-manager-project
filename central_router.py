@@ -20,17 +20,16 @@ class CentralRouter:
         self.client = Groq(api_key=groq_api_key)
         self.model = "openai/gpt-oss-120b" 
               
-        # Define agent capabilities for context
+        # Allowed agents only
+        self.allowed_agents = {"strategy", "content", "publishing", "analytics", "compliance", "general"}
+        # Define agent capabilities for context (restricted)
         self.agent_capabilities = {
             "strategy": "Content strategy planning, trend research, content calendar creation, competitor analysis",
             "content": "Content creation, text generation, visual ideation, hashtag optimization, copywriting",
             "publishing": "Content scheduling, cross-platform publishing, optimal timing, queue management",
-            "community": "Community management, real-time responses, sentiment analysis, customer queries",
-            "listening": "Social listening, brand mentions monitoring, industry intelligence, influencer tracking",
             "analytics": "Performance analysis, ROI measurement, predictive analytics, reporting",
-            "crisis": "Crisis management, issue detection, response coordination, reputation recovery",
             "compliance": "Brand safety, content moderation, legal compliance, risk assessment",
-            "general": "General conversation, casual chat, questions, explanations, help with any topic"
+            "general": "General conversation, casual chat, background info gathering, talking about the brand"
         }
         
     def route(self, user_request: str, context: Dict[str, Any] = None) -> Dict[str, Any]:
@@ -64,20 +63,21 @@ class CentralRouter:
             # Validate that we have proper sequential agents for complex requests
             if routing_decision['workflow_type'] == 'sequential' and not routing_decision.get('secondary_agents'):
                 print("Warning: Sequential workflow detected but no secondary agents found. Using enhanced fallback.")
-                return self._enhanced_fallback_routing(user_request)
+                routing_decision = self._enhanced_fallback_routing(user_request)
             
             # Add task decomposition for sequential workflows
             if routing_decision['workflow_type'] == 'sequential':
                 routing_decision['agent_tasks'] = self._decompose_tasks(user_request, routing_decision)
-            
+
+            # Sanitize to allowed agents
+            routing_decision = self._sanitize_routing(routing_decision)
             print(f"Router Decision: {json.dumps(routing_decision, indent=2)}")
-            
             return routing_decision
             
         except Exception as e:
             print(f"Routing error: {str(e)}")
-            # Use enhanced fallback for complex requests
-            return self._enhanced_fallback_routing(user_request)
+            # Use enhanced fallback for complex requests and sanitize
+            return self._sanitize_routing(self._enhanced_fallback_routing(user_request))
     
     def _get_system_prompt(self) -> str:
         """
@@ -90,10 +90,7 @@ class CentralRouter:
         - strategy: Content strategy planning, trend research, content calendar, competitor analysis
         - content: Content creation, text generation, visual ideation, hashtag optimization
         - publishing: Content scheduling, cross-platform publishing, optimal timing
-        - community: Community management, responses, sentiment analysis, customer queries
-        - listening: Social listening, brand mentions, industry intelligence, influencer tracking
         - analytics: Performance analysis, ROI measurement, predictive analytics, reporting
-        - crisis: Crisis management, issue detection, response coordination, reputation recovery
         - compliance: Brand safety, content moderation, legal compliance, risk assessment
         - general: General conversation, casual chat, questions, explanations, help with any topic
         
@@ -168,8 +165,7 @@ Respond in JSON format:
 {{
     "analytics": "Analyze Instagram performance from past 2 weeks and identify top-performing content types",
     "content": "Generate 5 reel ideas with scripts based on analytics insights",
-    "publishing": "Schedule the 5 reels at optimal times over next week",
-    "community": "Monitor comments and generate sentiment analysis report"
+    "publishing": "Schedule the 5 reels at optimal times over next week"
 }}"""
             
             response = self.client.chat.completions.create(
@@ -240,9 +236,6 @@ Respond in JSON format:
             "strategy": ["strategy", "plan", "calendar", "trend", "competitor"],
             "publishing": ["publish", "schedule", "post", "share", "upload"],
             "analytics": ["analyze", "report", "metrics", "performance", "roi"],
-            "community": ["respond", "engage", "comment", "reply", "community"],
-            "listening": ["monitor", "listen", "track", "mention", "sentiment"],
-            "crisis": ["crisis", "urgent", "emergency", "issue", "problem"],
             "compliance": ["compliance", "legal", "safety", "moderate", "risk"]
         }
         
@@ -313,31 +306,7 @@ Respond in JSON format:
                 "requires_human_review": False,
                 "priority": "medium"
             }
-        
-        # Crisis management
-        elif any(word in request_lower for word in ["crisis", "urgent", "emergency"]):
-            return {
-                "primary_agent": "crisis",
-                "workflow_type": "direct",
-                "reasoning": "Crisis management task that requires immediate attention",
-                "secondary_agents": [],
-                "parallel_tasks": [],
-                "requires_human_review": True,
-                "priority": "critical"
-            }
-        
-        # Community engagement
-        elif any(word in request_lower for word in ["respond", "reply", "engage", "comment"]):
-            return {
-                "primary_agent": "community",
-                "workflow_type": "direct",
-                "reasoning": "Direct community engagement task",
-                "secondary_agents": [],
-                "parallel_tasks": [],
-                "requires_human_review": False,
-                "priority": "high"
-            }
-            
+                    
         # Strategy and planning
         elif any(word in request_lower for word in ["strategy", "plan", "calendar", "competitor"]):
             return {
@@ -350,11 +319,11 @@ Respond in JSON format:
                 "priority": "medium"
             }
         
-        # Default to strategy agent for complex or unclear requests
+        # Default to general agent for casual or unclear requests
         return {
-            "primary_agent": "strategy",
+            "primary_agent": "general",
             "workflow_type": "direct",
-            "reasoning": "Default routing to strategy agent",
+            "reasoning": "Default routing to general agent for casual talk or unclear intent",
             "secondary_agents": [],
             "parallel_tasks": [],
             "requires_human_review": False,
@@ -381,14 +350,6 @@ Respond in JSON format:
         # Check for publishing/scheduling
         if any(word in request_lower for word in ["schedule", "publish", "post", "optimal time"]):
             steps.append("publishing")
-        
-        # Check for community/sentiment monitoring
-        if any(word in request_lower for word in ["monitor", "comments", "sentiment", "engagement", "discussion"]):
-            steps.append("community")
-        
-        # Check for listening/social monitoring
-        if any(word in request_lower for word in ["listen", "mentions", "track", "monitor"]):
-            steps.append("listening")
         
         # Remove duplicates while preserving order
         unique_steps = []
@@ -417,16 +378,39 @@ Respond in JSON format:
                 "priority": "medium"
             }
         else:
-            # Fallback to strategy for unclear requests
+            # Fallback to general for unclear requests
             return {
-                "primary_agent": "strategy",
+                "primary_agent": "general",
                 "workflow_type": "direct",
-                "reasoning": "Unclear request, defaulting to strategy agent",
+                "reasoning": "Unclear request, defaulting to general agent",
                 "secondary_agents": [],
                 "parallel_tasks": [],
                 "requires_human_review": False,
                 "priority": "medium"
             }
+
+    def _sanitize_routing(self, routing_decision: Dict[str, Any]) -> Dict[str, Any]:
+        """Ensure routing only uses allowed agents and a valid workflow."""
+        decision = dict(routing_decision)
+        primary = decision.get("primary_agent", "general")
+        if primary not in self.allowed_agents:
+            primary = "general"
+        secondary = [a for a in decision.get("secondary_agents", []) if a in self.allowed_agents and a != primary]
+        workflow = decision.get("workflow_type", "direct")
+        if workflow == "sequential" and not secondary:
+            workflow = "direct"
+        # Filter agent_tasks keys to allowed agents if present
+        agent_tasks = decision.get("agent_tasks")
+        if isinstance(agent_tasks, dict):
+            agent_tasks = {k: v for k, v in agent_tasks.items() if k in self.allowed_agents}
+        decision.update({
+            "primary_agent": primary,
+            "secondary_agents": secondary,
+            "workflow_type": workflow,
+        })
+        if isinstance(agent_tasks, dict):
+            decision["agent_tasks"] = agent_tasks
+        return decision
     
     def analyze_complexity(self, user_request: str) -> Dict[str, Any]:
         """

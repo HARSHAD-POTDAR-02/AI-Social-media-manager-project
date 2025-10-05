@@ -74,6 +74,7 @@ class AgentCommunication:
             response = generated_content.get('content', '')
 
             return {
+                'full_strategy': response,  # Include FULL strategy for content agent
                 'strategy_summary': generated_content.get('strategy_summary', response[:300] + '...' if len(response) > 300 else response),
                 'focus_area': generated_content.get('focus_area', 'General Strategy'),
                 'has_strategy': True,
@@ -90,7 +91,8 @@ class AgentCommunication:
             if response.get('agent') == 'strategy':
                 result = response.get('result', '')
 
-                # Extract recommendations
+                # Store FULL strategy response for content agent to use
+                recommendations['full_strategy'] = result
                 recommendations['strategy_summary'] = result[:300] + '...' if len(result) > 300 else result
                 recommendations['has_strategy'] = True
 
@@ -101,6 +103,9 @@ class AgentCommunication:
                         recommendations['focus_area'] = focus_match.group(1).strip()
 
         return recommendations
+    
+    @staticmethod
+    def _parse_metrics(text: str) -> Dict[str, Any]:
         """Parse numerical metrics from text"""
         metrics = {}
         
@@ -187,6 +192,21 @@ class AgentCommunication:
             themes['best_posting_times'] = ['14:00', '18:00']
         
         return themes
+    
+    @staticmethod
+    def extract_content_data(agent_responses: List[Dict]) -> Dict[str, Any]:
+        """Extract content data from content agent"""
+        content_data = {}
+        
+        for response in agent_responses:
+            if response.get('agent') == 'content':
+                result = response.get('result', '')
+                
+                content_data['generated_content'] = result
+                content_data['has_content'] = True
+                content_data['content_length'] = len(result)
+                
+        return content_data
     
     @staticmethod
     def create_context_for_agent(state: Dict[str, Any], current_agent: str) -> str:
