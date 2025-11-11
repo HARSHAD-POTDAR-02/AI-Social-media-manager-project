@@ -1020,5 +1020,64 @@
     "key_topics": [],
     "important_facts": [],
     "session_metadata": {}
+  },
+  "web-session-1759693213990": {
+    "session_id": "web-session-1759693213990",
+    "created_at": "2025-11-11T16:56:25.118577",
+    "last_updated": "2025-11-11T16:57:05.597802",
+    "conversation_history": [
+      {
+        "timestamp": "2025-11-11T16:56:26.779226",
+        "user_input": "hi",
+        "agent_response": "\ud83d\ude0a Hi! It's great to chat with you. Is there something on your mind that you'd like to talk about, or are you just looking for some casual conversation? I'm here to listen and help with any questions you might have. How's your day going so far?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      },
+      {
+        "timestamp": "2025-11-11T16:56:37.524609",
+        "user_input": "how have you been ?",
+        "agent_response": "\ud83d\ude0a I've been doing well, thanks for asking! It's great to catch up with you. I have to say, I'm a bit curious - you initially said hi and I wasn't sure if you had something specific on your mind, but now that you've asked how I've been, I'm guessing you might be in the mood for some casual chat? How about you, how's your day going so far?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      },
+      {
+        "timestamp": "2025-11-11T16:56:59.863783",
+        "user_input": "my name is harshad",
+        "agent_response": "Nice to get your name, Harshad! \ud83d\ude0a I'm glad we could catch up a bit earlier. I was just wondering, how about you? How's your day been so far? Anything exciting happening?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      },
+      {
+        "timestamp": "2025-11-11T16:57:05.218222",
+        "user_input": "what is my name",
+        "agent_response": "\ud83d\ude0a Ah, I think I can help you with that, Harshad! You mentioned earlier that your name is Harshad, so I'm pretty sure that's your name! Am I right?",
+        "agent_name": "general",
+        "metadata": {
+          "workflow_type": "direct",
+          "completed": true,
+          "agent_count": 1
+        }
+      }
+    ],
+    "context_summary": {},
+    "agent_interactions": {
+      "general_interactions": 4
+    },
+    "user_preferences": {},
+    "key_topics": [],
+    "important_facts": [],
+    "session_metadata": {}
   }
 }

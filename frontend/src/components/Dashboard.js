@@ -889,7 +889,7 @@ const Dashboard = ({ onNavigate }) => {
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <button 
             onClick={() => onNavigate && onNavigate('agents')}
             className="flex flex-col items-center space-y-2 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-all"
@@ -910,13 +910,6 @@ const Dashboard = ({ onNavigate }) => {
           >
             <CalendarIcon className="w-6 h-6 text-purple-600" />
             <span className="text-sm font-medium text-gray-700">Schedule Content</span>
-          </button>
-          <button 
-            onClick={() => onNavigate && onNavigate('community')}
-            className="flex flex-col items-center space-y-2 p-4 border border-gray-200 rounded-lg hover:border-pink-300 hover:bg-pink-50 transition-all"
-          >
-            <UserGroupIcon className="w-6 h-6 text-pink-600" />
-            <span className="text-sm font-medium text-gray-700">Engage Community</span>
           </button>
         </div>
       </div>

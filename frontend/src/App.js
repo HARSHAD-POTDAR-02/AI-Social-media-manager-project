@@ -66,13 +66,6 @@ function App() {
       icon: ChartBarIcon, 
       iconSolid: ChartSolid,
       description: 'Performance metrics'
-    },
-    { 
-      name: 'Community', 
-      id: 'community', 
-      icon: UserGroupIcon, 
-      iconSolid: UserGroupSolid,
-      description: 'Engagement & responses'
     }
   ];
 
@@ -133,11 +126,6 @@ function App() {
             );
           })}
         </nav>
-
-        {/* Task Queue Preview */}
-        <div className="p-4 border-t border-gray-200 mt-auto">
-          <TaskQueue isPreview={true} />
-        </div>
       </div>
 
       {/* Main Content */}
@@ -154,54 +142,7 @@ function App() {
               </p>
             </div>
             
-            <div className="flex items-center space-x-4">
-              {/* Search */}
-              <div className="relative">
-                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
 
-              {/* Notifications */}
-              <div className="relative">
-                <button
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <BellIcon className="w-6 h-6" />
-                  {notifications.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      {notifications.length}
-                    </span>
-                  )}
-                </button>
-
-                {/* Notifications Dropdown */}
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200">
-                      <h3 className="font-semibold text-gray-900">Notifications</h3>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {notifications.map((notification) => (
-                        <div key={notification.id} className="p-4 border-b border-gray-100 hover:bg-gray-50">
-                          <p className="text-sm text-gray-900">{notification.message}</p>
-                          <p className="text-xs text-gray-500 mt-1">{notification.time}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Settings */}
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                <CogIcon className="w-6 h-6" />
-              </button>
-            </div>
           </div>
         </header>
 
