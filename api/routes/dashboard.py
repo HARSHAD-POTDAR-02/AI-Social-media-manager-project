@@ -54,7 +54,7 @@ async def get_account_data(instagram_service):
 async def get_media_data(instagram_service):
     """Get media list asynchronously"""
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, instagram_service.get_media_list, 10)
+    return await loop.run_in_executor(None, instagram_service.get_media_list, 100)
 
 async def get_top_posts_data(instagram_service):
     """Get top posts asynchronously"""
