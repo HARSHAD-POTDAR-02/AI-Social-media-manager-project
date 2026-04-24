@@ -63,28 +63,57 @@ class SchedulerService:
                     # Update status to publishing
                     post['status'] = 'publishing'
                     
-                    # Attempt to publish
-                    try:
-                        publish_result = self.publishing_agent._publish_to_instagram(post)
-                        
-                        if publish_result['success']:
-                            post['status'] = 'published'
-                            post['published_at'] = current_time.isoformat()
-                            post['published_id'] = publish_result.get('post_id')
-                            published_count += 1
-                            print(f"Successfully published post {post['id']}")
-                            
-                            # Don't add published posts back to the list (remove from calendar)
+                    # Track which platforms already succeeded (to prevent duplicates on retry)
+                    published_platforms = post.get('published_platforms', [])
+                    
+                    # Attempt to publish to all platforms
+                    platforms = post.get('platforms', ['instagram'])
+                    results = post.get('platform_results', {})
+                    
+                    for platform in platforms:
+                        # Skip if already published to this platform
+                        if platform in published_platforms:
+                            print(f"Skipping {platform} - already published")
                             continue
-                        else:
-                            post['status'] = 'failed'
-                            post['error_message'] = publish_result.get('error')
-                            print(f"Failed to publish post {post['id']}: {publish_result.get('error')}")
+                        
+                        try:
+                            if platform == 'instagram':
+                                result = self.publishing_agent._publish_to_instagram(post)
+                            elif platform == 'facebook':
+                                result = self.publishing_agent._publish_to_facebook(post)
+                            else:
+                                result = {'success': False, 'error': f'Unknown platform: {platform}'}
                             
-                    except Exception as e:
-                        post['status'] = 'failed'
-                        post['error_message'] = str(e)
-                        print(f"Exception publishing post {post['id']}: {e}")
+                            results[platform] = result
+                            
+                            if result['success']:
+                                published_platforms.append(platform)
+                                print(f"Successfully published to {platform}")
+                            else:
+                                print(f"Failed to publish to {platform}: {result.get('error')}")
+                        except Exception as e:
+                            results[platform] = {'success': False, 'error': str(e)}
+                            print(f"Exception publishing to {platform}: {e}")
+                    
+                    # Update post with results
+                    post['platform_results'] = results
+                    post['published_platforms'] = published_platforms
+                    
+                    # Check if all platforms succeeded
+                    all_success = len(published_platforms) == len(platforms)
+                    
+                    if all_success:
+                        post['status'] = 'published'
+                        post['published_at'] = current_time.isoformat()
+                        published_count += 1
+                        print(f"Successfully published post {post['id']} to all platforms")
+                        
+                        # Don't add published posts back to the list (remove from calendar)
+                        continue
+                    else:
+                        # Partial success or failure - keep trying on next run
+                        post['status'] = 'scheduled'  # Reset to scheduled for retry
+                        print(f"Partial publish for post {post['id']} - will retry failed platforms")
                 
                 # Keep non-published posts in the list
                 updated_posts.append(post)

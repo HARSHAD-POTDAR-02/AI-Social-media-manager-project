@@ -29,6 +29,9 @@ class PublishingAgent:
             print(f"Warning: Instagram service not available: {e}")
             self.instagram_service = None
         
+        # Cache for Facebook Page Access Token
+        self._fb_page_token = None
+        
     def _load_posts(self) -> list:
         """Load posts from JSON file"""
         try:
@@ -116,18 +119,22 @@ class PublishingAgent:
         return base_date.replace(hour=9, minute=0, second=0, microsecond=0)
     
     def _create_scheduled_post(self, content: str, image_url: Optional[str] = None, 
-                              schedule_time: Optional[str] = None) -> Dict:
+                              schedule_time: Optional[str] = None, platforms: list = None) -> Dict:
         """Create a scheduled post"""
         posts = self._load_posts()
         
         # Parse schedule time with enhanced parsing
         scheduled_datetime = self._parse_schedule_time(schedule_time or "now")
         
+        # Default to Instagram only if not specified
+        if platforms is None:
+            platforms = ["instagram"]
+        
         # Create post
         post = {
             "id": str(uuid.uuid4()),
             "content": content,
-            "platform": "instagram",
+            "platforms": platforms,
             "media_type": "image" if image_url else "text",
             "media_urls": [image_url] if image_url else [],
             "scheduled_time": scheduled_datetime.isoformat(),
@@ -205,31 +212,31 @@ class PublishingAgent:
                 return {"success": False, "error": "No public image URL available for Instagram ingestion"}
 
             # Create media container
-            url = f"https://graph.facebook.com/v19.0/{self.instagram_service.instagram_account_id}/media"
-            params = {
-                "access_token": self.instagram_service.access_token,
+            url = f"https://graph.facebook.com/v21.0/{self.instagram_service.instagram_account_id}/media"
+            data = {
                 "image_url": public_url,
-                "caption": post["content"]
+                "caption": post["content"],
+                "access_token": self.instagram_service.access_token
             }
             
-            response = requests.post(url, params=params, timeout=30)
+            response = requests.post(url, data=data, timeout=30)
             
             if response.status_code == 200:
                 container_data = response.json()
                 container_id = container_data["id"]
                 
                 # Publish the container
-                publish_url = f"https://graph.facebook.com/v19.0/{self.instagram_service.instagram_account_id}/media_publish"
-                publish_params = {
-                    "access_token": self.instagram_service.access_token,
-                    "creation_id": container_id
+                publish_url = f"https://graph.facebook.com/v21.0/{self.instagram_service.instagram_account_id}/media_publish"
+                publish_data = {
+                    "creation_id": container_id,
+                    "access_token": self.instagram_service.access_token
                 }
                 
-                publish_response = requests.post(publish_url, params=publish_params, timeout=30)
+                publish_response = requests.post(publish_url, data=publish_data, timeout=30)
                 
                 if publish_response.status_code == 200:
-                    publish_data = publish_response.json()
-                    return {"success": True, "post_id": publish_data["id"]}
+                    publish_result = publish_response.json()
+                    return {"success": True, "post_id": publish_result["id"]}
                 else:
                     return {"success": False, "error": f"Publish failed: {publish_response.text}"}
             else:
@@ -238,8 +245,93 @@ class PublishingAgent:
         except Exception as e:
             return {"success": False, "error": f"Publishing error: {str(e)}"}
     
+    def _get_facebook_page_token(self) -> Optional[str]:
+        """Get Facebook Page Access Token from user access token"""
+        if self._fb_page_token:
+            return self._fb_page_token
+        
+        try:
+            facebook_page_id = os.getenv("FACEBOOK_PAGE_ID")
+            user_access_token = os.getenv("INSTAGRAM_ACCESS_TOKEN")
+            
+            if not facebook_page_id or not user_access_token:
+                return None
+            
+            # Get page access token
+            url = f"https://graph.facebook.com/v21.0/{facebook_page_id}"
+            params = {
+                "fields": "access_token",
+                "access_token": user_access_token
+            }
+            
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                data = response.json()
+                page_token = data.get("access_token")
+                if page_token:
+                    self._fb_page_token = page_token
+                    print("Successfully retrieved Facebook Page Access Token")
+                    return page_token
+            else:
+                print(f"Failed to get page token: {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"Error getting Facebook page token: {e}")
+            return None
+    
+    def _publish_to_facebook(self, post: Dict) -> Dict:
+        """Publish post to Facebook"""
+        if not self.instagram_service:
+            return {"success": False, "error": "Facebook service not available"}
+        
+        try:
+            media_urls = post.get("media_urls", [])
+            facebook_page_id = os.getenv("FACEBOOK_PAGE_ID")
+            
+            if not facebook_page_id:
+                return {"success": False, "error": "Facebook Page ID not configured"}
+            
+            # Get Page Access Token (not user token)
+            page_access_token = self._get_facebook_page_token()
+            if not page_access_token:
+                return {"success": False, "error": "Could not retrieve Facebook Page Access Token"}
+            
+            # Use Facebook Pages API (works without deprecated permissions)
+            if media_urls:
+                public_url = self._ensure_public_image_url(media_urls[0])
+                if not public_url:
+                    return {"success": False, "error": "No public image URL available"}
+                
+                # Post photo to Facebook Page
+                url = f"https://graph.facebook.com/v21.0/{facebook_page_id}/photos"
+                data = {
+                    "url": public_url,
+                    "message": post["content"],
+                    "access_token": page_access_token
+                }
+            else:
+                # Text-only post to Facebook Page
+                url = f"https://graph.facebook.com/v21.0/{facebook_page_id}/feed"
+                data = {
+                    "message": post["content"],
+                    "access_token": page_access_token
+                }
+            
+            response = requests.post(url, data=data, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                return {"success": True, "post_id": result.get("id") or result.get("post_id")}
+            else:
+                return {"success": False, "error": f"Facebook publish failed: {response.text}"}
+                
+        except Exception as e:
+            return {"success": False, "error": f"Facebook publishing error: {str(e)}"}
+    
     def _publish_now(self, post_id: str) -> Dict:
-        """Publish a post immediately"""
+        """Publish a post immediately to all specified platforms"""
         posts = self._load_posts()
         
         # Find post
@@ -256,20 +348,34 @@ class PublishingAgent:
         post["status"] = "publishing"
         self._save_posts(posts)
         
-        # Publish
-        result = self._publish_to_instagram(post)
+        # Publish to all platforms
+        platforms = post.get("platforms", ["instagram", "facebook"])
+        results = {}
+        all_success = True
         
-        # Update post with result
-        if result["success"]:
+        for platform in platforms:
+            if platform == "instagram":
+                result = self._publish_to_instagram(post)
+            elif platform == "facebook":
+                result = self._publish_to_facebook(post)
+            else:
+                result = {"success": False, "error": f"Unknown platform: {platform}"}
+            
+            results[platform] = result
+            if not result["success"]:
+                all_success = False
+        
+        # Update post with results
+        if all_success:
             post["status"] = "published"
             post["published_at"] = datetime.now().isoformat()
-            post["published_id"] = result.get("post_id")
+            post["platform_results"] = results
         else:
             post["status"] = "failed"
-            post["error_message"] = result.get("error")
+            post["platform_results"] = results
         
         self._save_posts(posts)
-        return result
+        return {"success": all_success, "results": results}
     
     def _upload_local_image(self, image_path: str) -> Optional[str]:
         """Upload local image file to hosting service and return public URL"""
@@ -395,29 +501,51 @@ class PublishingAgent:
                             schedule_time = match.group(1)
                             break
                     
+                    # Detect which platforms to post to
+                    platforms = []
+                    if 'instagram' in user_request or 'insta' in user_request:
+                        platforms.append('instagram')
+                    if 'facebook' in user_request or 'fb' in user_request:
+                        platforms.append('facebook')
+                    
+                    # Default to Instagram only if no platform specified
+                    if not platforms:
+                        platforms = ['instagram']
+                    
                     # Create scheduled post
                     print(f"Creating scheduled post with time: {schedule_time}")
+                    print(f"Platforms: {platforms}")
                     print(f"Content being scheduled (first 100 chars): {content[:100]}...")
                     print(f"Full content length: {len(content)} characters")
-                    post = self._create_scheduled_post(content, image_url, schedule_time)
+                    post = self._create_scheduled_post(content, image_url, schedule_time, platforms)
                     
                     # Get scheduled time for display
                     scheduled_datetime = self._parse_schedule_time(schedule_time or "now")
                     print(f"Parsed scheduled time: {scheduled_datetime}")
                     print(f"Current time: {datetime.now()}")
                     
+                    # Build platform names for message
+                    platform_names = ' and '.join([p.capitalize() for p in platforms])
+                    
                     # NEVER publish immediately - always schedule
-                    result_message = f"Content scheduled for {scheduled_datetime.strftime('%I:%M %p on %B %d, %Y')}. Will be posted automatically by scheduler."
+                    result_message = f"Content scheduled for {scheduled_datetime.strftime('%I:%M %p on %B %d, %Y')} on {platform_names}. Will be posted automatically by scheduler."
         
         # Add communication metadata
         AgentCommunication.add_communication_metadata(state, self.name, bool(content_data))
         
         # Add response
+        platforms_list = ['Instagram']  # Default
+        if 'facebook' in user_request or 'fb' in user_request:
+            if 'instagram' in user_request or 'insta' in user_request:
+                platforms_list = ['Instagram', 'Facebook']
+            else:
+                platforms_list = ['Facebook']
+        
         state['agent_responses'].append({
             'agent': self.name,
             'action': 'content_publishing',
             'result': result_message,
-            'platforms': ['Instagram'],
+            'platforms': platforms_list,
             'used_content_agent': bool(content_data)
         })
         
