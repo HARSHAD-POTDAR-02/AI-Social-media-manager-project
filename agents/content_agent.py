@@ -187,20 +187,48 @@ Remember: Your response should be a direct answer to the user's request, nothing
         return self._call_llm(system_prompt, user_prompt, temperature=0.3)
 
     def _generate_image(self, prompt: str) -> Optional[str]:
-        """Generate image URL from Pollinations AI"""
+        """Generate image URL from Pollinations AI and upload to reliable host"""
         try:
             print(f"Generating image with prompt: {prompt}")
 
-            # Always use Pollinations AI for image generation
+            # Generate image from Pollinations AI using official API with model parameters
+            import random
             encoded_prompt = requests.utils.quote(prompt)
-            image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024"
-            print(f"Generated image URL: {image_url}")
+            api_key = os.getenv("POLLINATIONS_API_KEY", "sk_dnBVFtIexrome9MQ1p2CUcp5MPgsZGbQ")
+            random_seed = random.randint(1, 1000000)
+            
+            pollinations_url = f"https://gen.pollinations.ai/image/{encoded_prompt}?model=flux&width=1024&height=1024"
+            print(f"Pollinations URL: {pollinations_url}")
 
-            # Return the URL directly instead of downloading
-            return image_url
+            # Download the image from Pollinations with Bearer token
+            headers = {
+                'Authorization': f'Bearer {api_key}',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'image/png,image/jpeg,image/webp,image/*'
+            }
+            response = requests.get(pollinations_url, headers=headers, timeout=60, allow_redirects=True)
+            
+            if response.status_code != 200:
+                print(f"Failed to download image from Pollinations: {response.status_code}")
+                print(f"Response: {response.text[:200]}")
+                return None
+
+            # Check if we got an actual image
+            content_type = response.headers.get('Content-Type', '')
+            print(f"Content-Type: {content_type}, Size: {len(response.content)} bytes")
+            
+            if 'image' not in content_type.lower():
+                print(f"Response is not an image. Content-Type: {content_type}")
+                return None
+
+            # Return Pollinations URL directly instead of uploading
+            print(f"Returning Pollinations URL directly: {pollinations_url}")
+            return pollinations_url
 
         except Exception as e:
             print(f"Error generating image: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     def _create_content_brief(self, state: Dict[str, Any]) -> str:
