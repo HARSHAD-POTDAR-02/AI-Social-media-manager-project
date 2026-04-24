@@ -19,9 +19,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from graph_setup import SocialMediaManagerGraph
 from dotenv import load_dotenv
 from routes.instagram import router as instagram_router
+from routes.facebook import router as facebook_router
 from routes.scheduling import router as scheduling_router
 from routes.scheduler import router as scheduler_router
 from routes.dashboard import router as dashboard_router
+from routes.facebook_dashboard import router as facebook_dashboard_router
 from routes.performance import router as performance_router
 from routes.insights import router as insights_router
 from routes.content_strategy import router as content_strategy_router
@@ -54,9 +56,11 @@ app.add_middleware(
 
 # Include routers
 app.include_router(instagram_router)
+app.include_router(facebook_router)
 app.include_router(scheduling_router)
 app.include_router(scheduler_router, prefix="/api")
 app.include_router(dashboard_router)
+app.include_router(facebook_dashboard_router)
 app.include_router(performance_router)
 app.include_router(insights_router)
 app.include_router(content_strategy_router, prefix="/api")
